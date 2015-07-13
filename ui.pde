@@ -8,7 +8,8 @@ CircleController cc = new CircleController();
 void setup(){
     selector = new SerialSelector(this);
     selector.show();
-    size(1345, 225);
+    //size(1345, 225);
+    size(displayWidth, displayHeight);
     background(255,255,255);
     //rect(60, 80, 240, 180);
 }
@@ -275,7 +276,7 @@ public class LCDController{
         }
         return ret;
     }
-    
+
 
     void sendData(Serial port, Circles c){
         port.write(this.header);

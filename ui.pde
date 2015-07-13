@@ -33,7 +33,7 @@ void serialEvent(Serial port) {
         if ( port.available() > 0 ) {
             String buffer = selected_port.readString();
             if(buffer != null){
-                println("read: "+buffer);
+                //println("read: "+buffer);
             }
         }
     }
@@ -205,32 +205,42 @@ public class LCDController{
         end = "end\r";
     }
 
-    int[][] createRdata(Circles c){
-        int ret[][] = new int[3][16];
-        for(int y = 0;y < 16;y ++){
-            for(int x = 0;x < 96; x ++){
-                int buf = circles.matrix[x][y] & 0xff0000;
-                ret[x / 32][y] = ret[x / 32][y] << 1;
-                if(buf > 0){
-                    ret[x / 32][y] |= 1;
+
+
+    byte[] createRdata(Circles c){
+        byte ret[] = new byte[192];
+        int p = 0;
+        for(int y = 0;y < 16; y++){
+            for(int x = 0;x < 96; x += 8){
+                ret[p] = 0;
+                for(int k = 0;k < 8;k ++){
+                    ret[p] = ret[p] << 1;
+                    if (c.matrix[x+k][y] && 0xff0000 != 0) {
+                        ret[p] |= 1;
+                    }
                 }
+                p++;
             }
         }
-        return ret;
     }
-    int[][] createGdata(Circles c){
-        int ret[][] = new int[3][16];
-        for(int y = 0;y < 16;y ++){
-            for(int x = 0;x < 96; x ++){
-                int buf = circles.matrix[x][y] & 0x00ff00;
-                ret[x / 32][y] = ret[x / 32][y] << 1;
-                if(buf > 0){
-                    ret[x / 32][y] |= 1;
+
+    byte[] createRdata(Circles c){
+        byte ret[] = new byte[192];
+        int p = 0;
+        for(int y = 0;y < 16; y++){
+            for(int x = 0;x < 96; x += 8){
+                ret[p] = 0;
+                for(int k = 0;k < 8;k ++){
+                    ret[p] = ret[p] << 1;
+                    if (c.matrix[x+k][y] && 0x00ff00 != 0) {
+                        ret[p] |= 1;
+                    }
                 }
+                p++;
             }
         }
-        return ret;
     }
+
     void sendData(Serial port, Circles c){
         port.write(this.header);
         port.write(this.coord);
@@ -241,12 +251,13 @@ public class LCDController{
                 port.write(r[x][y]);
             }
         }
-
+        port.write('\r');
         for(int y = 0;y < 16;y ++){
             for(int x = 0; x < 3; x ++){
                 port.write(g[x][y]);
             }
         }
+        port.write('\r');
         port.write(this.end);
     }
 }

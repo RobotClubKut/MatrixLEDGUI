@@ -9,6 +9,7 @@ void setup(){
     selector = new SerialSelector(this);
     selector.show();
     size(1345, 225);
+    background(255,255,255);
     //rect(60, 80, 240, 180);
 }
 
@@ -23,7 +24,35 @@ void draw(){
     }
     //String sendStr = "test string";
     //selected_port.write(100);
+    /*
+    if (mousePressed == true){
+    //ellipse(mouseX, mouseY, 60, 60);
+        try{
+            CoordinateController coordCtrl = new CoordinateController();
+            Coordinate coord = coordCtrl.convertR2V(mouseX, mouseY);
+            color c = circles.matrix[coord.x][coord.y];
+            c = c & 0x00ffffff;
 
+            //red
+            if (c == 0xff0000) {
+                c = 0xff00ff00;
+            }
+            //green
+            else if (c == 0x00ff00) {
+                c = 0xffffA500;
+            }
+            //red + green
+            else if (c == 0xffA500) {
+                c = 0xff000000;
+            }
+            else if (c == 0x000000) {
+                c = 0xffff0000;
+            }
+            circles.matrix[coord.x][coord.y] = c;
+        }catch(Exception e){
+
+        }
+    }*/
 }
 
 
@@ -37,38 +66,38 @@ void serialEvent(Serial port) {
             }
         }
     }
+
 }
-
 void mousePressed() {
+    if (mousePressed == true){
     //ellipse(mouseX, mouseY, 60, 60);
-    try{
-        CoordinateController coordCtrl = new CoordinateController();
-        Coordinate coord = coordCtrl.convertR2V(mouseX, mouseY);
-        color c = circles.matrix[coord.x][coord.y];
-        c = c & 0x00ffffff;
+        try{
+            CoordinateController coordCtrl = new CoordinateController();
+            Coordinate coord = coordCtrl.convertR2V(mouseX, mouseY);
+            color c = circles.matrix[coord.x][coord.y];
+            c = c & 0x00ffffff;
 
-        //white
-        if (c == 0xffffff) {
-            c = 0xffff0000;
-        }
-        //red
-        else if (c == 0xff0000) {
-            c = 0xff00ff00;
-        }
-        //green
-        else if (c == 0x00ff00) {
-            c = 0xffffA500;
-        }
-        //red + green
-        else if (c == 0xffA500) {
-            c = 0xffffffff;
-        }
-        circles.matrix[coord.x][coord.y] = c;
-    }catch(Exception e){
+            //red
+            if (c == 0xff0000) {
+                c = 0xff00ff00;
+            }
+            //green
+            else if (c == 0x00ff00) {
+                c = 0xffffA500;
+            }
+            //red + green
+            else if (c == 0xffA500) {
+                c = 0xff000000;
+            }
+            else if (c == 0x000000) {
+                c = 0xffff0000;
+            }
+            circles.matrix[coord.x][coord.y] = c;
+        }catch(Exception e){
 
+        }
     }
 }
-
 
 void viewLCDDisplay(){
     cc.draw(circles);
@@ -175,7 +204,7 @@ public class Circles{
     void init(){
         for (int y = 0; y < 16; y ++) {
             for (int x = 0; x < 96; x ++) {
-                this.matrix[x][y] = 0xffffffff;
+                this.matrix[x][y] = 0xff000000;
             }
         }
     }
@@ -188,7 +217,11 @@ public class CircleController{
             for(int x = 0; x < 96; x ++){
                 CoordinateController cc = new CoordinateController();
                 coor = cc.convertV2R(x, y);
+                //background(255,255,255);
                 fill(c.matrix[x][y]);
+                stroke(255,255,255);
+                strokeWeight(3);
+                //noStroke();
                 ellipse(coor.getRealX(), coor.getRealY(), coor.getU(),coor.getU());
             }
         }
@@ -214,48 +247,49 @@ public class LCDController{
             for(int x = 0;x < 96; x += 8){
                 ret[p] = 0;
                 for(int k = 0;k < 8;k ++){
-                    ret[p] = ret[p] << 1;
-                    if (c.matrix[x+k][y] && 0xff0000 != 0) {
+                    ret[p] = (byte)((int)ret[p] << 1);
+                    if ((c.matrix[x+k][y] & 0xff0000) != 0) {
                         ret[p] |= 1;
                     }
                 }
                 p++;
             }
         }
+        return ret;
     }
 
-    byte[] createRdata(Circles c){
+    byte[] createGdata(Circles c){
         byte ret[] = new byte[192];
         int p = 0;
         for(int y = 0;y < 16; y++){
             for(int x = 0;x < 96; x += 8){
                 ret[p] = 0;
                 for(int k = 0;k < 8;k ++){
-                    ret[p] = ret[p] << 1;
-                    if (c.matrix[x+k][y] && 0x00ff00 != 0) {
+                    ret[p] = (byte)((int)ret[p] << 1);
+                    if ((c.matrix[x+k][y] & 0x00ff00) != 0) {
                         ret[p] |= 1;
                     }
                 }
                 p++;
             }
         }
+        return ret;
     }
+    
 
     void sendData(Serial port, Circles c){
         port.write(this.header);
         port.write(this.coord);
-        int r[][] = createRdata(c);
-        int g[][] = createGdata(c);
-        for(int y = 0;y < 16;y ++){
-            for(int x = 0; x < 3; x ++){
-                port.write(r[x][y]);
-            }
+        byte[] r = createRdata(c);
+        byte[] g = createGdata(c);
+
+        for(int i = 0;i < r.length; i ++){
+            port.write(r[i]);
         }
+
         port.write('\r');
-        for(int y = 0;y < 16;y ++){
-            for(int x = 0; x < 3; x ++){
-                port.write(g[x][y]);
-            }
+        for(int i = 0;i < g.length; i ++){
+            port.write(g[i]);
         }
         port.write('\r');
         port.write(this.end);

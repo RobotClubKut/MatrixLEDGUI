@@ -1,6 +1,21 @@
 //96x16
 import processing.serial.*;
 
+import java.awt.Color;
+import javax.swing.*;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import javax.imageio.ImageIO;
+import java.awt.Font;
+import java.awt.RenderingHints;
+import java.io.*;
+import java.awt.*;
+import java.awt.geom.*;
+import java.awt.image.*;
+import javax.imageio.*;
+
 SerialSelector selector;
 Circles circles = new Circles();
 CircleController cc = new CircleController();
@@ -11,6 +26,7 @@ void setup(){
     //size(1345, 225);
     size(14*96, 14*16);
     background(255,255,255);
+    new BitmapStrings().Create("TEST");
     //rect(60, 80, 240, 180);
 }
 
@@ -23,37 +39,10 @@ void draw(){
         lcdCtl.sendData(port, circles);
 
     }
-    //String sendStr = "test string";
-    //selected_port.write(100);
-    /*
-    if (mousePressed == true){
-    //ellipse(mouseX, mouseY, 60, 60);
-        try{
-            CoordinateController coordCtrl = new CoordinateController();
-            Coordinate coord = coordCtrl.convertR2V(mouseX, mouseY);
-            color c = circles.matrix[coord.x][coord.y];
-            c = c & 0x00ffffff;
+    BitmapStrings b = new BitmapStrings();
 
-            //red
-            if (c == 0xff0000) {
-                c = 0xff00ff00;
-            }
-            //green
-            else if (c == 0x00ff00) {
-                c = 0xffffA500;
-            }
-            //red + green
-            else if (c == 0xffA500) {
-                c = 0xff000000;
-            }
-            else if (c == 0x000000) {
-                c = 0xffff0000;
-            }
-            circles.matrix[coord.x][coord.y] = c;
-        }catch(Exception e){
-
-        }
-    }*/
+    Circles c = b.convertImage2Matrix("/Users/masato/git/aoi_shirase/matrix_led/cmd/ui/test.jpg");
+    circles = c;
 }
 
 
@@ -294,5 +283,105 @@ public class LCDController{
         }
         port.write('\r');
         port.write(this.end);
+    }
+}
+
+public class BitmapStrings{
+    public void Create(String str) {
+        int w=14*96;
+        int h=14*16;
+        try {
+            //受け取った文字列を画像化
+            BufferedImage image=new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
+            Graphics2D g2d=image.createGraphics();
+            Font font = new Font(Font.DIALOG_INPUT, Font.PLAIN, 200);
+            g2d.setFont(font);
+            g2d.setBackground(Color.WHITE);
+            g2d.clearRect(0,0,w,h);
+            g2d.setColor(Color.BLACK);
+            g2d.drawString(str,0,h-40);
+
+            ImageIO.write(image, "JPEG", new File("/Users/masato/git/aoi_shirase/matrix_led/cmd/ui/test.jpg"));
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public Circles convertImage2Matrix(String fileName){
+        try{
+            BufferedImage img = ImageIO.read(new File(fileName));
+            img = convertBinaryImg(img);
+            int w = img.getWidth();
+            int h = img.getHeight();
+            Coordinate coord = new Coordinate();
+            int buffer = 0xffffffff;
+            Circles c = new Circles();
+            int margin = 6;
+
+            for (int y = 0;y < h; y += coord.getU()){
+                for (int x = 0; x < w; x += coord.getU()){
+                    for(int by = y + margin; by < y + coord.getU() - margin; by ++){
+                        for(int bx = x + margin; bx < x + coord.getU() - margin; bx ++){
+                            buffer = buffer & img.getRGB(bx, by);
+                        }
+                    }
+                    buffer ^= 0xffffffff;
+                    buffer |= 0xff000000;
+                    buffer &= 0xffffA500;
+                    c.matrix[x/coord.getU()][y/coord.getU()] = buffer;
+                    buffer = 0xffffffff;
+                }
+            }
+            return c;
+        }
+        catch (Exception e) {
+            return null;
+        }
+    }
+    public BufferedImage convertBinaryImg(BufferedImage img)throws Exception{
+        WritableRaster wr = img.getRaster();
+        int buf[] = new int[wr.getNumDataElements()];
+        for(int ly=0;ly<wr.getHeight();ly++){
+            for(int lx=0;lx<wr.getWidth();lx++){
+                wr.getPixel(lx, ly, buf);
+
+                int maxval = Math.max(Math.max(buf[0], buf[1]), buf[2]);
+                int minval = Math.min(Math.min(buf[0], buf[1]), buf[2]);
+                buf[0] = buf[1] = buf[2] = (maxval+minval)/2;
+
+                wr.setPixel(lx, ly, buf);
+            }
+        }
+        /* lookupデータ作成 */
+        byte dat[] = new byte[256];
+        for(int di=0;di<256;di++){
+            dat[di] = di>256*0.55?(byte)255:(byte)0;
+        }
+        LookupOp lo = new LookupOp(new ByteLookupTable(0, dat), null);
+        BufferedImage img2 = lo.filter(img, null);
+        return img2;
+    }
+}
+
+public class ImageUtility{
+    public int a(int c){
+        return c>>>24;
+    }
+    public int r(int c){
+        return c>>16&0xff;
+    }
+    public int g(int c){
+        return c>>8&0xff;
+    }
+    public int b(int c){
+        return c&0xff;
+    }
+    public int rgb
+    (int r,int g,int b){
+        return 0xff000000 | r <<16 | g <<8 | b;
+    }
+    public int argb
+    (int a,int r,int g,int b){
+        return a<<24 | r <<16 | g <<8 | b;
     }
 }

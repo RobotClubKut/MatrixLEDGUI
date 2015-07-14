@@ -26,7 +26,7 @@ void setup(){
     //size(1345, 225);
     size(14*96, 14*16);
     background(255,255,255);
-    new BitmapStrings().Create("TEST");
+    new BitmapStrings().Create("Amazon.com");
     //rect(60, 80, 240, 180);
 }
 
@@ -294,7 +294,8 @@ public class BitmapStrings{
             //受け取った文字列を画像化
             BufferedImage image=new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
             Graphics2D g2d=image.createGraphics();
-            Font font = new Font(Font.DIALOG_INPUT, Font.PLAIN, 200);
+            Font font = new Font(Font.DIALOG_INPUT, Font.PLAIN, 180);
+            //Font font = new Font(Font.DIALOG_INPUT, Font.ITALIC, 200);
             g2d.setFont(font);
             g2d.setBackground(Color.WHITE);
             g2d.clearRect(0,0,w,h);
@@ -307,6 +308,7 @@ public class BitmapStrings{
         }
     }
 
+
     public Circles convertImage2Matrix(String fileName){
         try{
             BufferedImage img = ImageIO.read(new File(fileName));
@@ -316,7 +318,7 @@ public class BitmapStrings{
             Coordinate coord = new Coordinate();
             int buffer = 0xffffffff;
             Circles c = new Circles();
-            int margin = 6;
+            int margin = 4;
 
             for (int y = 0;y < h; y += coord.getU()){
                 for (int x = 0; x < w; x += coord.getU()){
@@ -327,7 +329,7 @@ public class BitmapStrings{
                     }
                     buffer ^= 0xffffffff;
                     buffer |= 0xff000000;
-                    buffer &= 0xffffA500;
+                    buffer &= 0xffff5a00;
                     c.matrix[x/coord.getU()][y/coord.getU()] = buffer;
                     buffer = 0xffffffff;
                 }

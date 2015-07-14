@@ -1,6 +1,5 @@
 //96x16
 import processing.serial.*;
-
 import java.awt.Color;
 import javax.swing.*;
 import java.awt.Graphics;
@@ -15,14 +14,26 @@ import java.awt.*;
 import java.awt.geom.*;
 import java.awt.image.*;
 import javax.imageio.*;
+import java.net.URL;
+import java.net.HttpURLConnection;
+import java.io.InputStreamReader;
+import java.io.IOException;
+import java.io.BufferedReader;
+
 
 
 SerialSelector selector;
 Circles circles = new Circles();
 CircleController cc = new CircleController();
-String writeStr = "真紅可愛い。";
+String writeStr = "";
 
 double stringCoord = 14 * 96 + 20;
+//News news = new News();
+JSONObject js = loadJSONObject("https://www.kimonolabs.com/api/bnl617tc?apikey=t36hExBGRYVtIATai55sBsahHkXdlt1v");
+JSONObject results = js.getJSONObject("results");
+JSONArray collection1 = results.getJSONArray("collection1");
+int newsNum = 0;
+
 
 void setup(){
     selector = new SerialSelector(this);
@@ -36,11 +47,18 @@ void setup(){
 }
 
 void draw(){
+    JSONObject collection = collection1.getJSONObject(newsNum);
+    JSONObject news = collection.getJSONObject("news");
+    writeStr = news.getString("text");
     new BitmapStrings().Create(writeStr);
     stringCoord -= 14.0;
     int charSize = (14 * 96) / 6;
-    if (stringCoord < (charSize * writeStr.length() * -1 + writeStr.length() * 45)){
+    if (stringCoord < (charSize * writeStr.length() * -1 + writeStr.length() * writeStr.length())){
         stringCoord = 14 * 96;
+        newsNum ++;
+        if(collection1.size() == newsNum){
+            newsNum = 0;
+        }
     }
     viewLCDDisplay();
     Serial port = selector.getSerial();
@@ -297,6 +315,35 @@ public class LCDController{
     }
 }
 
+public class News{
+    String url;
+    //http://appli.ntv.co.jp/ntv_WebAPI/news/?key=13NfqB5gW46kFmZAyp6Jjj4HSrL27pK1Nj7Bxv5jXDftzL7yzNQKuoDR7fv7&word=news
+    //https://www.kimonolabs.com/api/bnl617tc?apikey=t36hExBGRYVtIATai55sBsahHkXdlt1v
+    String[] json;
+    News(){
+        url = "https://www.kimonolabs.com/api/bnl617tc?apikey=t36hExBGRYVtIATai55sBsahHkXdlt1v";
+        json = loadStrings(url);
+    }
+
+    String getUrl(){
+        return this.url;
+    }
+    void setUrl(String url){
+        this.url = url;
+    }
+
+    String[] getJson(){
+        return this.json;
+    }
+    void setJson(String[] json){
+        this.json = json;
+    }
+}
+
+public class NewsController{
+
+}
+
 public class BitmapStrings{
     public void Create(String str) {
         int w=14*96;
@@ -305,7 +352,7 @@ public class BitmapStrings{
             //受け取った文字列を画像化
             BufferedImage image=new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
             Graphics2D g2d=image.createGraphics();
-            Font font = new Font(Font.DIALOG_INPUT, Font.PLAIN, 180);
+            Font font = new Font(Font.DIALOG_INPUT, Font.PLAIN, 210);
             //Font font = new Font(Font.DIALOG_INPUT, Font.ITALIC, 200);
             g2d.setFont(font);
             g2d.setBackground(Color.WHITE);
@@ -329,7 +376,7 @@ public class BitmapStrings{
             Coordinate coord = new Coordinate();
             int buffer = 0xffffffff;
             Circles c = new Circles();
-            int margin = 4;
+            int margin = 5;
 
             for (int y = 0;y < h; y += coord.getU()){
                 for (int x = 0; x < w; x += coord.getU()){

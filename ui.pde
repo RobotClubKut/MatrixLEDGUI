@@ -33,11 +33,13 @@ JSONObject js = loadJSONObject("https://www.kimonolabs.com/api/bnl617tc?apikey=t
 JSONObject results = js.getJSONObject("results");
 JSONArray collection1 = results.getJSONArray("collection1");
 int newsNum = 0;
+int frameFlag = 0;
+int maiden = 0;
 
 
 void setup(){
     selector = new SerialSelector(this);
-    frameRate(30);
+    frameRate(20);
     selector.show();
     //size(1345, 225);
     size(14*96, 14*16);
@@ -51,11 +53,13 @@ void draw(){
     JSONObject news = collection.getJSONObject("news");
     writeStr = news.getString("text");
     new BitmapStrings().Create(writeStr);
-    stringCoord -= 14.0;
+    stringCoord -= 28.0;
     int charSize = (14 * 96) / 6;
-    if (stringCoord < (charSize * writeStr.length() * -1 + writeStr.length() * writeStr.length())){
+    //if (stringCoord < (charSize * writeStr.length() * -1 + writeStr.length() * 10)){
+    if(circles.allColorOr == 0 && maiden != 0){
         stringCoord = 14 * 96;
         newsNum ++;
+        maiden = 0;
         if(collection1.size() == newsNum){
             newsNum = 0;
         }
@@ -70,8 +74,17 @@ void draw(){
     }
     BitmapStrings b = new BitmapStrings();
 
-    Circles c = b.convertImage2Matrix("/Users/masato/git/aoi_shirase/matrix_led/cmd/ui/test.jpg");
-    circles = c;
+    if (frameFlag % 3 == 0){
+        Circles c = b.convertImage2Matrix("/Users/masato/git/aoi_shirase/matrix_led/cmd/ui/test.jpg");
+        circles = c;
+    }
+    else {
+        if (frameFlag > 65536) {
+                frameFlag = 0;
+        }
+        Circles c = new Circles();
+        circles = c;
+    }
 }
 
 
@@ -216,7 +229,9 @@ public class CoordinateController{
 
 public class Circles{
     color matrix[][] = new color[96][16];
+    int allColorOr;
     Circles(){
+        allColorOr = 0;
         init();
     }
 
@@ -352,13 +367,13 @@ public class BitmapStrings{
             //受け取った文字列を画像化
             BufferedImage image=new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
             Graphics2D g2d=image.createGraphics();
-            Font font = new Font(Font.DIALOG_INPUT, Font.PLAIN, 210);
+            Font font = new Font(Font.DIALOG_INPUT, Font.PLAIN, 230);
             //Font font = new Font(Font.DIALOG_INPUT, Font.ITALIC, 200);
             g2d.setFont(font);
             g2d.setBackground(Color.WHITE);
             g2d.clearRect(0,0,w,h);
             g2d.setColor(Color.BLACK);
-            g2d.drawString(str,0 + (int)stringCoord,h-40);
+            g2d.drawString(str,0 + (int)stringCoord,h-20);
 
             ImageIO.write(image, "JPEG", new File("/Users/masato/git/aoi_shirase/matrix_led/cmd/ui/test.jpg"));
         } catch(Exception e) {
@@ -377,6 +392,7 @@ public class BitmapStrings{
             int buffer = 0xffffffff;
             Circles c = new Circles();
             int margin = 5;
+            c.allColorOr = 0;
 
             for (int y = 0;y < h; y += coord.getU()){
                 for (int x = 0; x < w; x += coord.getU()){
@@ -389,6 +405,11 @@ public class BitmapStrings{
                     buffer |= 0xff000000;
                     buffer &= 0xffff5a00;
                     c.matrix[x/coord.getU()][y/coord.getU()] = buffer;
+                    c.allColorOr |= buffer;
+                    c.allColorOr &= 0x00ffffff;
+                    if(maiden == 0){
+                        maiden = c.allColorOr;
+                    }
                     buffer = 0xffffffff;
                 }
             }

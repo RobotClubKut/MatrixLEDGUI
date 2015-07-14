@@ -16,21 +16,32 @@ import java.awt.geom.*;
 import java.awt.image.*;
 import javax.imageio.*;
 
+
 SerialSelector selector;
 Circles circles = new Circles();
 CircleController cc = new CircleController();
+String writeStr = "ぴねたんなう！";
+
+double stringCoord = 14 * 96 + 20;
 
 void setup(){
     selector = new SerialSelector(this);
+    frameRate(12);
     selector.show();
     //size(1345, 225);
     size(14*96, 14*16);
     background(255,255,255);
-    new BitmapStrings().Create("Amazon.com");
+    new BitmapStrings().Create(writeStr);
     //rect(60, 80, 240, 180);
 }
 
 void draw(){
+    new BitmapStrings().Create(writeStr);
+    stringCoord -= 14.0;
+    int charSize = (14 * 96) / 6;
+    if (stringCoord < (charSize * writeStr.length() * -1) - 10){
+        stringCoord = 14 * 96 + 20;
+    }
     viewLCDDisplay();
     Serial port = selector.getSerial();
     if (port != null){
@@ -294,13 +305,13 @@ public class BitmapStrings{
             //受け取った文字列を画像化
             BufferedImage image=new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
             Graphics2D g2d=image.createGraphics();
-            Font font = new Font(Font.DIALOG_INPUT, Font.PLAIN, 180);
-            //Font font = new Font(Font.DIALOG_INPUT, Font.ITALIC, 200);
+            //Font font = new Font(Font.DIALOG_INPUT, Font.PLAIN, 180);
+            Font font = new Font(Font.DIALOG_INPUT, Font.ITALIC, 200);
             g2d.setFont(font);
             g2d.setBackground(Color.WHITE);
             g2d.clearRect(0,0,w,h);
             g2d.setColor(Color.BLACK);
-            g2d.drawString(str,0,h-40);
+            g2d.drawString(str,0 + (int)stringCoord,h-40);
 
             ImageIO.write(image, "JPEG", new File("/Users/masato/git/aoi_shirase/matrix_led/cmd/ui/test.jpg"));
         } catch(Exception e) {

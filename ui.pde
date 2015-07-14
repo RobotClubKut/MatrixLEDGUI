@@ -74,7 +74,7 @@ void mousePressed() {
     //ellipse(mouseX, mouseY, 60, 60);
         try{
             CoordinateController coordCtrl = new CoordinateController();
-            Coordinate coord = coordCtrl.convertR2V(mouseX, mouseY);
+            Coordinate coord = coordCtrl.convertR2V(mouseX+6, mouseY);
             color c = circles.matrix[coord.x][coord.y];
             c = c & 0x00ffffff;
 

@@ -9,7 +9,7 @@ void setup(){
     selector = new SerialSelector(this);
     selector.show();
     //size(1345, 225);
-    size(displayWidth, displayHeight);
+    size(14*96, 14*16);
     background(255,255,255);
     //rect(60, 80, 240, 180);
 }
@@ -74,7 +74,7 @@ void mousePressed() {
     //ellipse(mouseX, mouseY, 60, 60);
         try{
             CoordinateController coordCtrl = new CoordinateController();
-            Coordinate coord = coordCtrl.convertR2V(mouseX+6, mouseY);
+            Coordinate coord = coordCtrl.convertR2V(mouseX+6, mouseY+3);
             color c = circles.matrix[coord.x][coord.y];
             c = c & 0x00ffffff;
 

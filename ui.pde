@@ -32,7 +32,7 @@ int newsNum = 0;
 int maiden = 0;
 News newsData = new News();
 News weatherData = new News("weather");
-int displayFlag = 0;
+int displayFlag = 1;
 int speed = 100;
 int colorFlag = 0xffffa500;
 //ずらすための変数

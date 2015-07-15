@@ -29,13 +29,12 @@ String writeStr = "";
 
 double stringCoord = 14 * 96 + 20;
 //News news = new News();
-JSONObject js = loadJSONObject("https://www.kimonolabs.com/api/bnl617tc?apikey=t36hExBGRYVtIATai55sBsahHkXdlt1v");
-JSONObject results = js.getJSONObject("results");
-JSONArray collection1 = results.getJSONArray("collection1");
+//JSONObject js = loadJSONObject("https://www.kimonolabs.com/api/bnl617tc?apikey=t36hExBGRYVtIATai55sBsahHkXdlt1v");
 int newsNum = 0;
 int frameFlag = 0;
 int maiden = 0;
-
+BufferedImage imageBuffer;
+News newsData = new News();
 
 void setup(){
     selector = new SerialSelector(this);
@@ -49,21 +48,31 @@ void setup(){
 }
 
 void draw(){
-    JSONObject collection = collection1.getJSONObject(newsNum);
-    JSONObject news = collection.getJSONObject("news");
-    writeStr = news.getString("text");
+    //JSONObject collection = collection1.getJSONObject(newsNum);
+    //JSONObject news = collection.getJSONObject("news");
+    //writeStr = news.getString("text");
+
+    writeStr = newsData.getNews();
     new BitmapStrings().Create(writeStr);
-    stringCoord -= 28.0;
+    new BitmapStrings().Create("嶺上開花");
+    stringCoord -= 14.0;
     int charSize = (14 * 96) / 6;
     //if (stringCoord < (charSize * writeStr.length() * -1 + writeStr.length() * 10)){
+    //画面上から文字が消失した時次の文字列を送る処理
+
+    /*
     if(circles.allColorOr == 0 && maiden != 0){
         stringCoord = 14 * 96;
         newsNum ++;
         maiden = 0;
         if(collection1.size() == newsNum){
+            //最後まで表示した時apiをリロード
+            //js = loadJSONObject("https://www.kimonolabs.com/api/bnl617tc?apikey=t36hExBGRYVtIATai55sBsahHkXdlt1v");
             newsNum = 0;
         }
     }
+    */
+
     viewLCDDisplay();
     Serial port = selector.getSerial();
     if (port != null){
@@ -79,6 +88,7 @@ void draw(){
         circles = c;
     }
     else {
+        println(frameFlag);
         if (frameFlag > 65536) {
                 frameFlag = 0;
         }
@@ -334,10 +344,30 @@ public class News{
     String url;
     //http://appli.ntv.co.jp/ntv_WebAPI/news/?key=13NfqB5gW46kFmZAyp6Jjj4HSrL27pK1Nj7Bxv5jXDftzL7yzNQKuoDR7fv7&word=news
     //https://www.kimonolabs.com/api/bnl617tc?apikey=t36hExBGRYVtIATai55sBsahHkXdlt1v
-    String[] json;
+    JSONObject json;
     News(){
         url = "https://www.kimonolabs.com/api/bnl617tc?apikey=t36hExBGRYVtIATai55sBsahHkXdlt1v";
-        json = loadStrings(url);
+        json = loadJSONObject(url);
+    }
+
+    String getNews(){
+        JSONObject results = json.getJSONObject("results");
+        JSONArray collection1 = results.getJSONArray("collection1");
+        JSONObject collection = collection1.getJSONObject(newsNum);
+        JSONObject news = collection.getJSONObject("news");
+        String ret = news.getString("text");
+
+        if(circles.allColorOr == 0 && maiden != 0){
+            stringCoord = 14 * 96;
+            newsNum ++;
+            maiden = 0;
+            if(collection1.size() == newsNum){
+                //最後まで表示した時apiをリロード
+                //js = loadJSONObject("https://www.kimonolabs.com/api/bnl617tc?apikey=t36hExBGRYVtIATai55sBsahHkXdlt1v");
+                newsNum = 0;
+            }
+        }
+        return ret;
     }
 
     String getUrl(){
@@ -346,18 +376,14 @@ public class News{
     void setUrl(String url){
         this.url = url;
     }
-
-    String[] getJson(){
+    JSONObject getJson(){
         return this.json;
     }
-    void setJson(String[] json){
+    void setJson(JSONObject json){
         this.json = json;
     }
 }
 
-public class NewsController{
-
-}
 
 public class BitmapStrings{
     public void Create(String str) {
@@ -367,7 +393,8 @@ public class BitmapStrings{
             //受け取った文字列を画像化
             BufferedImage image=new BufferedImage(w,h,BufferedImage.TYPE_INT_RGB);
             Graphics2D g2d=image.createGraphics();
-            Font font = new Font(Font.DIALOG_INPUT, Font.PLAIN, 230);
+            Font font = new Font(Font.DIALOG_INPUT, Font.PLAIN, 247);
+            //Font font = new Font("Serif", Font.PLAIN, 247);
             //Font font = new Font(Font.DIALOG_INPUT, Font.ITALIC, 200);
             g2d.setFont(font);
             g2d.setBackground(Color.WHITE);
@@ -376,6 +403,8 @@ public class BitmapStrings{
             g2d.drawString(str,0 + (int)stringCoord,h-20);
 
             ImageIO.write(image, "JPEG", new File("/Users/masato/git/aoi_shirase/matrix_led/cmd/ui/test.jpg"));
+            g2d.drawImage(image, null, 0, 0);
+            //imageBuffer = image;
         } catch(Exception e) {
             e.printStackTrace();
         }
@@ -385,6 +414,7 @@ public class BitmapStrings{
     public Circles convertImage2Matrix(String fileName){
         try{
             BufferedImage img = ImageIO.read(new File(fileName));
+            //BufferedImage img = imageBuffer;
             img = convertBinaryImg(img);
             int w = img.getWidth();
             int h = img.getHeight();

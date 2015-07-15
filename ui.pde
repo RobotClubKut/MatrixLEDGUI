@@ -32,11 +32,13 @@ int newsNum = 0;
 int maiden = 0;
 News newsData = new News();
 int displayFlag = 0;
+int speed = 100;
+int colorFlag = 0xffffa500;
 
 void setup(){
     size(14*96, 14*16);
     selector = new SerialSelector(this);
-    frameRate(100);
+    frameRate(speed);
     selector.show();
     background(255,255,255);
 }
@@ -47,6 +49,30 @@ void keyPressed() {
             displayFlag = 1;
         } else {
             displayFlag = 0;
+        }
+    }
+    else if (key == 'u') {
+        speed += 10;
+        frameRate(speed);
+        println("speed:" + speed);
+    }
+    else if (key == 'd') {
+        speed -= 10;
+        if (0 >= speed){
+            speed = 10;
+        }
+        frameRate(speed);
+        println("speed:" + speed);
+    }
+    else if (key == 'c') {
+        if (colorFlag == 0xffffa500) {
+            colorFlag = 0xffff0000;
+        }
+        else if (colorFlag == 0xffff0000) {
+            colorFlag = 0xff00ff00;
+        }
+        else {
+            colorFlag = 0xffffa500;
         }
     }
 }
@@ -293,6 +319,7 @@ public class LCDController{
                     ret[p] = (byte)((int)ret[p] << 1);
                     if ((c.matrix[x+k][y] & 0x00ff00) != 0) {
                         ret[p] |= 1;
+
                     }
                 }
                 p++;
@@ -326,6 +353,7 @@ public class News{
     //http://appli.ntv.co.jp/ntv_WebAPI/news/?key=13NfqB5gW46kFmZAyp6Jjj4HSrL27pK1Nj7Bxv5jXDftzL7yzNQKuoDR7fv7&word=news
     //https://www.kimonolabs.com/api/bnl617tc?apikey=t36hExBGRYVtIATai55sBsahHkXdlt1v
     JSONObject json;
+    int len;
     News(){
         url = "https://www.kimonolabs.com/api/bnl617tc?apikey=t36hExBGRYVtIATai55sBsahHkXdlt1v";
         json = loadJSONObject(url);
@@ -337,6 +365,7 @@ public class News{
         JSONObject collection = collection1.getJSONObject(newsNum);
         JSONObject news = collection.getJSONObject("news");
         String ret = news.getString("text");
+        len = collection1.size();
 
 
         return ret;
@@ -380,6 +409,10 @@ public class BitmapStrings{
             if(circles.allColorOr == 0 && maiden != 0){
                 stringCoord = 14 * 96;
                 maiden = 0;
+                newsNum ++;
+                if(newsData.len == newsNum){
+                    newsNum = 0;
+                }
             }
 
             //ImageIO.write(image, "JPEG", new File("/Users/masato/git/aoi_shirase/matrix_led/cmd/ui/test.jpg"));
@@ -416,7 +449,8 @@ public class BitmapStrings{
                     buffer ^= 0xffffffff;
                     buffer |= 0xff000000;
                     //color
-                    buffer &= 0xffff5a00;
+                    //buffer &= 0xffff5a00;
+                    buffer &= colorFlag;
                     //buffer &= 0xffff0000;
 
                     c.matrix[x/coord.getU()][y/coord.getU()] = buffer;

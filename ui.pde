@@ -22,79 +22,44 @@ import java.io.BufferedReader;
 
 
 
-SerialSelector selector;
 Circles circles = new Circles();
+SerialSelector selector;
 CircleController cc = new CircleController();
 String writeStr = "";
 
 double stringCoord = 14 * 96 + 20;
-//News news = new News();
-//JSONObject js = loadJSONObject("https://www.kimonolabs.com/api/bnl617tc?apikey=t36hExBGRYVtIATai55sBsahHkXdlt1v");
 int newsNum = 0;
-int frameFlag = 0;
 int maiden = 0;
-BufferedImage imageBuffer;
 News newsData = new News();
 
 void setup(){
+    size(14*96, 14*16);
     selector = new SerialSelector(this);
     frameRate(20);
     selector.show();
-    //size(1345, 225);
-    size(14*96, 14*16);
     background(255,255,255);
-    new BitmapStrings().Create(writeStr);
-    //rect(60, 80, 240, 180);
 }
 
 void draw(){
-    //JSONObject collection = collection1.getJSONObject(newsNum);
-    //JSONObject news = collection.getJSONObject("news");
-    //writeStr = news.getString("text");
-
-    writeStr = newsData.getNews();
-    new BitmapStrings().Create(writeStr);
-    new BitmapStrings().Create("嶺上開花");
+    writeStr = "にゃんぱす";
+    //Graphics2D g2d = new BitmapStrings().Create(writeStr);
+    BitmapStrings bitmapStrings = new BitmapStrings();
+    BufferedImage img = bitmapStrings.Create(writeStr);
+    //ImageIO.write(img, "JPEG", new File("/Users/masato/git/aoi_shirase/matrix_led/cmd/ui/test.jpg"));
+    //文字をずらす処理
     stringCoord -= 14.0;
     int charSize = (14 * 96) / 6;
-    //if (stringCoord < (charSize * writeStr.length() * -1 + writeStr.length() * 10)){
-    //画面上から文字が消失した時次の文字列を送る処理
-
-    /*
-    if(circles.allColorOr == 0 && maiden != 0){
-        stringCoord = 14 * 96;
-        newsNum ++;
-        maiden = 0;
-        if(collection1.size() == newsNum){
-            //最後まで表示した時apiをリロード
-            //js = loadJSONObject("https://www.kimonolabs.com/api/bnl617tc?apikey=t36hExBGRYVtIATai55sBsahHkXdlt1v");
-            newsNum = 0;
-        }
-    }
-    */
-
     viewLCDDisplay();
     Serial port = selector.getSerial();
+    //portにデータあるとき
     if (port != null){
-        //port.write("hoge");
         LCDController lcdCtl = new LCDController();
         lcdCtl.sendData(port, circles);
-
     }
     BitmapStrings b = new BitmapStrings();
 
-    if (frameFlag % 3 == 0){
-        Circles c = b.convertImage2Matrix("/Users/masato/git/aoi_shirase/matrix_led/cmd/ui/test.jpg");
-        circles = c;
-    }
-    else {
-        println(frameFlag);
-        if (frameFlag > 65536) {
-                frameFlag = 0;
-        }
-        Circles c = new Circles();
-        circles = c;
-    }
+    Circles c = b.convertImage2Matrix(img);
+    circles = c;
 }
 
 
@@ -262,6 +227,8 @@ public class CircleController{
                 CoordinateController cc = new CoordinateController();
                 coor = cc.convertV2R(x, y);
                 //background(255,255,255);
+
+
                 fill(c.matrix[x][y]);
                 stroke(255,255,255);
                 strokeWeight(3);
@@ -357,16 +324,7 @@ public class News{
         JSONObject news = collection.getJSONObject("news");
         String ret = news.getString("text");
 
-        if(circles.allColorOr == 0 && maiden != 0){
-            stringCoord = 14 * 96;
-            newsNum ++;
-            maiden = 0;
-            if(collection1.size() == newsNum){
-                //最後まで表示した時apiをリロード
-                //js = loadJSONObject("https://www.kimonolabs.com/api/bnl617tc?apikey=t36hExBGRYVtIATai55sBsahHkXdlt1v");
-                newsNum = 0;
-            }
-        }
+
         return ret;
     }
 
@@ -386,7 +344,7 @@ public class News{
 
 
 public class BitmapStrings{
-    public void Create(String str) {
+    public BufferedImage Create(String str) {
         int w=14*96;
         int h=14*16;
         try {
@@ -402,22 +360,32 @@ public class BitmapStrings{
             g2d.setColor(Color.BLACK);
             g2d.drawString(str,0 + (int)stringCoord,h-20);
 
-            ImageIO.write(image, "JPEG", new File("/Users/masato/git/aoi_shirase/matrix_led/cmd/ui/test.jpg"));
-            g2d.drawImage(image, null, 0, 0);
+            //ImageIO.write(image, "JPEG", new File("/Users/masato/git/aoi_shirase/matrix_led/cmd/ui/test.jpg"));
+            //g2d.drawImage(image, null, 0, 0);
+            //画面上から文字が消失した時次の文字列を送る処理
+            if(circles.allColorOr == 0 && maiden != 0){
+                stringCoord = 14 * 96;
+                maiden = 0;
+            }
+
+            //ImageIO.write(image, "JPEG", new File("/Users/masato/git/aoi_shirase/matrix_led/cmd/ui/test.jpg"));
+            return image;
             //imageBuffer = image;
         } catch(Exception e) {
             e.printStackTrace();
+            return null;
         }
     }
 
 
-    public Circles convertImage2Matrix(String fileName){
+    public Circles convertImage2Matrix(BufferedImage img){
         try{
-            BufferedImage img = ImageIO.read(new File(fileName));
+            //BufferedImage img = ImageIO.read(new File(fileName));
             //BufferedImage img = imageBuffer;
-            img = convertBinaryImg(img);
-            int w = img.getWidth();
+            //img = convertBinaryImg(img);
             int h = img.getHeight();
+            int w = img.getWidth();
+
             Coordinate coord = new Coordinate();
             int buffer = 0xffffffff;
             Circles c = new Circles();
@@ -433,7 +401,10 @@ public class BitmapStrings{
                     }
                     buffer ^= 0xffffffff;
                     buffer |= 0xff000000;
+                    //color
                     buffer &= 0xffff5a00;
+                    //buffer &= 0xffff0000;
+
                     c.matrix[x/coord.getU()][y/coord.getU()] = buffer;
                     c.allColorOr |= buffer;
                     c.allColorOr &= 0x00ffffff;
@@ -449,6 +420,7 @@ public class BitmapStrings{
             return null;
         }
     }
+    //画像の二値化
     public BufferedImage convertBinaryImg(BufferedImage img)throws Exception{
         WritableRaster wr = img.getRaster();
         int buf[] = new int[wr.getNumDataElements()];

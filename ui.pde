@@ -31,9 +31,12 @@ double stringCoord = 14 * 96 + 20;
 int newsNum = 0;
 int maiden = 0;
 News newsData = new News();
+News weatherData = new News("weather");
 int displayFlag = 0;
 int speed = 100;
 int colorFlag = 0xffffa500;
+//ずらすための変数
+double shifter = 14.0;
 
 void setup(){
     size(14*96, 14*16);
@@ -75,17 +78,31 @@ void keyPressed() {
             colorFlag = 0xffffa500;
         }
     }
+    else if (key == 's') {
+        if(shifter == 14.0){
+            shifter = 0;
+        } else {
+            shifter = 14.0;
+        }
+    }
+    else if (key == 'j') {
+        shifter = 14.0;
+    }
+    else if (key == 'k') {
+        shifter = -14.0;
+    }
 }
 
 void draw(){
-    //writeStr = "にゃんぱす";
+    //writeStr = "冷やし中華はじめました";
     //Graphics2D g2d = new BitmapStrings().Create(writeStr);
     BitmapStrings bitmapStrings = new BitmapStrings();
-    writeStr = newsData.getNews();
+    //writeStr = newsData.getNews();
+    writeStr = weatherData.getWeather();
     BufferedImage img = bitmapStrings.Create(writeStr);
     //ImageIO.write(img, "JPEG", new File("/Users/masato/git/aoi_shirase/matrix_led/cmd/ui/test.jpg"));
     //文字をずらす処理
-    stringCoord -= 14.0;
+    stringCoord -= shifter;
     int charSize = (14 * 96) / 6;
     if (displayFlag == 0) {
         viewLCDDisplay();
@@ -139,7 +156,6 @@ void mousePressed() {
             else if (c == 0x000000) {
                 c = 0xffff0000;
             }
-            circles.matrix[coord.x][coord.y] = c;
         }catch(Exception e){
 
         }
@@ -358,6 +374,16 @@ public class News{
         url = "https://www.kimonolabs.com/api/bnl617tc?apikey=t36hExBGRYVtIATai55sBsahHkXdlt1v";
         json = loadJSONObject(url);
     }
+    News(String status){
+        if (status == "news"){
+            url = "https://www.kimonolabs.com/api/bnl617tc?apikey=t36hExBGRYVtIATai55sBsahHkXdlt1v";
+            json = loadJSONObject(url);
+        }
+        else if (status == "weather"){
+            url = "http://api.openweathermap.org/data/2.5/weather?lat=33.620798&lon=133.719816";
+            json = loadJSONObject(url);
+        }
+    }
 
     String getNews(){
         JSONObject results = json.getJSONObject("results");
@@ -366,9 +392,46 @@ public class News{
         JSONObject news = collection.getJSONObject("news");
         String ret = news.getString("text");
         len = collection1.size();
-
-
         return ret;
+    }
+    String getWeather(){
+        JSONArray weathers = json.getJSONArray("weather");
+        JSONObject weather = weathers.getJSONObject(0);
+        String status = weather.getString("main");
+        status = status.toLowerCase();
+        String ret = "";
+
+        if (status.equals("clear sky")){
+            ret = "快晴";
+        }
+        else if (status.equals("few clouds")){
+            ret = "晴れ";
+        }
+        else if (status.equals("scattered clouds")){
+            ret = "曇り(弱)";
+        }
+        else if (status.equals("broken clouds")) {
+            ret = "曇り(強)";
+        }
+        else if (status.equals("shower rain")) {
+            ret = "雨(shower rain)";
+        }
+        else if (status.equals("rain")) {
+            ret = "雨(rain)";
+        }
+        else if (status.equals("thunderstorm")){
+            ret = "雷雨";
+        }
+        else if (status.equals("snow")) {
+            ret = "雪";
+        }
+        else if (status.equals("mist")) {
+            ret = "霧";
+        }
+        else {
+            ret = status;
+        }
+        return "現在の天気は" + ret + "です。";
     }
 
     String getUrl(){

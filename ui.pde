@@ -31,25 +31,39 @@ double stringCoord = 14 * 96 + 20;
 int newsNum = 0;
 int maiden = 0;
 News newsData = new News();
+int displayFlag = 0;
 
 void setup(){
     size(14*96, 14*16);
     selector = new SerialSelector(this);
-    frameRate(20);
+    frameRate(100);
     selector.show();
     background(255,255,255);
 }
 
+void keyPressed() {
+    if (key == ENTER) {      // コード化されているキーが押された
+        if (displayFlag == 0) {
+            displayFlag = 1;
+        } else {
+            displayFlag = 0;
+        }
+    }
+}
+
 void draw(){
-    writeStr = "にゃんぱす";
+    //writeStr = "にゃんぱす";
     //Graphics2D g2d = new BitmapStrings().Create(writeStr);
     BitmapStrings bitmapStrings = new BitmapStrings();
+    writeStr = newsData.getNews();
     BufferedImage img = bitmapStrings.Create(writeStr);
     //ImageIO.write(img, "JPEG", new File("/Users/masato/git/aoi_shirase/matrix_led/cmd/ui/test.jpg"));
     //文字をずらす処理
     stringCoord -= 14.0;
     int charSize = (14 * 96) / 6;
-    viewLCDDisplay();
+    if (displayFlag == 0) {
+        viewLCDDisplay();
+    }
     Serial port = selector.getSerial();
     //portにデータあるとき
     if (port != null){

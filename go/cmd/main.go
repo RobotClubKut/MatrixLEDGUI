@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"image"
@@ -75,14 +74,26 @@ func createPacket(str lcdString) *packet {
 
 		for x := 0; x < 3; x++ {
 			r := data.dataR[x][y]
-			binr := make([]byte, 4)
-			binary.LittleEndian.PutUint32(binr, r)
-			bufr = append(bufr, binr...)
+			rbyte := (r & 0xff000000) >> 24
+			bufr = append(bufr, byte(rbyte))
+			rbyte = (r & 0x00ff0000) >> 16
+			bufr = append(bufr, byte(rbyte))
+			rbyte = (r & 0x0000ff00) >> 8
+			bufr = append(bufr, byte(rbyte))
+			rbyte = (r & 0x000000ff) >> 0
+			bufr = append(bufr, byte(rbyte))
 
 			g := data.dataG[x][y]
-			bing := make([]byte, 4)
-			binary.LittleEndian.PutUint32(bing, g)
-			bufg = append(bufg, bing...)
+			//bing := make([]byte, 4)
+			//binary.LittleEndian.PutUint32(bing, g)
+			gbyte := (g & 0xff000000) >> 24
+			bufg = append(bufg, byte(gbyte))
+			gbyte = (g & 0x00ff0000) >> 16
+			bufg = append(bufg, byte(gbyte))
+			gbyte = (g & 0x0000ff00) >> 8
+			bufg = append(bufg, byte(gbyte))
+			gbyte = (g & 0x000000ff) >> 0
+			bufg = append(bufg, byte(gbyte))
 		}
 
 	}
@@ -205,7 +216,7 @@ func cancellationAntiAliasing(img *image.RGBA) *image.NRGBA {
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			r, _, _, _ := gray.At(x, y).RGBA()
-			if r > 27000 {
+			if r > 39000 {
 				c := color.RGBA{0xff, 0xff, 0xff, 0xff}
 				gray.Set(x, y, c)
 			} else {
@@ -298,12 +309,12 @@ func printLCD(str lcdString, shift int) (*lcdMatrix, *lcdString) {
 			ret.dataR[i][y] = ret.dataR[i][y] << 1
 			ret.dataG[i][y] = ret.dataG[i][y] << 1
 			if str.coord+x < len(bufR) {
-				ret.dataR[i][y] |= uint32(bufR[str.coord+x])
+				ret.dataR[i][y] |= uint32(bufR[x+str.coord])
 			} else {
 				ret.dataR[i][y] |= 0
 			}
 			if str.coord+x < len(bufG) {
-				ret.dataG[i][y] |= uint32(bufG[str.coord+x])
+				ret.dataG[i][y] |= uint32(bufG[x+str.coord])
 			} else {
 				ret.dataG[i][y] |= 0
 			}
@@ -312,31 +323,14 @@ func printLCD(str lcdString, shift int) (*lcdMatrix, *lcdString) {
 	}
 	str.coord += shift
 
-	fmt.Println("r:")
-	for y := 0; y < 16; y++ {
-		for x := 0; x < 3; x++ {
-			fmt.Printf("%4d", ret.dataR[x][y])
-		}
-		fmt.Println()
-	}
-	fmt.Println()
-	fmt.Println("g:")
-	for y := 0; y < 16; y++ {
-		for x := 0; x < 3; x++ {
-			fmt.Printf("%4d", ret.dataG[x][y])
-		}
-		fmt.Println()
-	}
-	fmt.Println()
-
 	return &ret, &str
 
 }
 
 func main() {
 
-	str0 := convertLCDString("A", 0xff0000)
-	str1 := convertLCDString("F", 0x00ff00)
+	str0 := convertLCDString("平田氏", 0xff0000)
+	str1 := convertLCDString("遅刻", 0x00ff00)
 	str := connectLCDStr(str0, str1)
 	packet := createPacket(*str)
 

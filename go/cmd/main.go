@@ -11,11 +11,11 @@ import (
 	"github.com/huin/goserial"
 )
 
-type Packet struct {
+type packet struct {
 	header     string
 	coord      string
-	data_r     string
-	data_g     string
+	dataR      string
+	dataG      string
 	terminator string
 }
 

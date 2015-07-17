@@ -11,6 +11,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/disintegration/imaging"
 	"github.com/huin/goserial"
@@ -61,8 +62,9 @@ func createTestPacket() *packet {
 	return &p
 }
 
-func createPacket(str lcdString) *packet {
-	data, _ := printLCD(str, 0)
+func createPacket(str lcdString, shift int) *packet {
+	data := printLCD(str, shift)
+	//str.coord += shift
 
 	var packet packet
 	packet.header = "pcmat\r"
@@ -115,7 +117,8 @@ func getUsbttyList() []string {
 
 	for _, f := range contents {
 		if strings.Contains(f.Name(), "tty.usb") ||
-			strings.Contains(f.Name(), "ttyUSB") {
+			strings.Contains(f.Name(), "ttyUSB") ||
+			strings.Contains(f.Name(), "ttyACM") {
 			//return "/dev/" + f.Name()
 			ret = append(ret, "/dev/"+f.Name())
 		}
@@ -159,7 +162,8 @@ func viewTtySelecterUI() (string, error) {
 
 func convertString2image(s string) (*image.RGBA, error) {
 	dpi := float64(72.0)
-	fontfile := "../font/MS Gothic.ttf"
+	//fontfile := "../font/MS Gothic.ttf"
+	fontfile := "../font/VL.ttf"
 	hinting := "none"
 	size := float64(17)
 	spacing := float64(0)
@@ -216,7 +220,7 @@ func cancellationAntiAliasing(img *image.RGBA) *image.NRGBA {
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			r, _, _, _ := gray.At(x, y).RGBA()
-			if r > 39000 {
+			if r > 38000 {
 				c := color.RGBA{0xff, 0xff, 0xff, 0xff}
 				gray.Set(x, y, c)
 			} else {
@@ -269,7 +273,7 @@ func connectLCDStr(str0 *lcdString, str1 *lcdString) *lcdString {
 	return &ret
 }
 
-func printLCD(str lcdString, shift int) (*lcdMatrix, *lcdString) {
+func printLCD(str lcdString, shift int) *lcdMatrix {
 	var ret lcdMatrix
 
 	for y := 0; y < 16; y++ {
@@ -298,7 +302,7 @@ func printLCD(str lcdString, shift int) (*lcdMatrix, *lcdString) {
 		i := 0
 		counter := 0
 
-		for x := 0; x < 96; x++ {
+		for x := shift; x < 96; x++ {
 			if counter == 32 {
 				i++
 				if i == 3 {
@@ -321,18 +325,18 @@ func printLCD(str lcdString, shift int) (*lcdMatrix, *lcdString) {
 			counter++
 		}
 	}
-	str.coord += shift
 
-	return &ret, &str
+	return &ret
 
 }
 
 func main() {
 
-	str0 := convertLCDString("平田氏", 0xff0000)
-	str1 := convertLCDString("遅刻", 0x00ff00)
+	str0 := convertLCDString("ああああああああああああああああああああああああああああああああああああああ", 0xff0000)
+	str1 := convertLCDString("", 0x00ff00)
+	str2 := convertLCDString("", 0xffff00)
 	str := connectLCDStr(str0, str1)
-	packet := createPacket(*str)
+	str = connectLCDStr(str, str2)
 
 	ttyPort, err := viewTtySelecterUI()
 	if err != nil {
@@ -343,31 +347,11 @@ func main() {
 	serialPort, _ := goserial.OpenPort(serialConfigure)
 
 	//packet = createTestPacket()
-	c := 0
-	fmt.Println("r:")
-	for _, p := range packet.dataR {
-		fmt.Printf("%4d", p)
-		c++
-		if c == 16 {
-			c = 0
-			fmt.Println()
-		}
-	}
-	fmt.Println()
-	c = 0
-	fmt.Println("g:")
-	for _, p := range packet.dataG {
-		fmt.Printf("%4d", p)
-		c++
-		if c == 16 {
-			c = 0
-			fmt.Println()
-		}
-	}
-	fmt.Println()
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 10000; i++ {
+		packet := createPacket(*str, i)
 		writeLCDMatrix(packet, serialPort)
+		time.Sleep(10 * time.Millisecond)
 	}
 	//gray := imaging.Grayscale(convertString2image("A"))
 	//imaging.Save(gray, "./grayscaled.png")

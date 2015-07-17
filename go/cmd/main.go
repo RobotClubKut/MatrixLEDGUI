@@ -22,8 +22,8 @@ import (
 type packet struct {
 	header     string
 	coord      string
-	dataR      string
-	dataG      string
+	dataR      []byte
+	dataG      []byte
 	terminator string
 }
 
@@ -55,8 +55,8 @@ func createTestPacket() *packet {
 	}
 	s1 += "\r"
 	s2 += "\r"
-	p.dataR = s1
-	p.dataG = s2
+	p.dataR = []byte(s1)
+	p.dataG = []byte(s2)
 	p.terminator = "end\r"
 
 	return &p
@@ -65,7 +65,10 @@ func createTestPacket() *packet {
 func createPacket(str lcdString) *packet {
 	data, _ := printLCD(str, 0)
 
-	packet := createTestPacket()
+	var packet packet
+	packet.header = "pcmat\r"
+	packet.coord = "000\r5ff\r"
+
 	var bufr []byte
 	var bufg []byte
 	for y := 0; y < 16; y++ {
@@ -76,17 +79,23 @@ func createPacket(str lcdString) *packet {
 			binary.LittleEndian.PutUint32(binr, r)
 			bufr = append(bufr, binr...)
 
-			g := data.dataR[x][y]
+			g := data.dataG[x][y]
 			bing := make([]byte, 4)
 			binary.LittleEndian.PutUint32(bing, g)
 			bufg = append(bufg, bing...)
 		}
 
 	}
-	packet.dataR = string(bufr) + "\r"
-	packet.dataG = string(bufg) + "\r"
+	//packet.dataR = []byte(string(bufr) + "\r")
+	//packet.dataG = []byte(string(bufg) + "\r")
+	packet.dataR = append(packet.dataR, bufr...)
+	packet.dataR = append(packet.dataR, []byte("\r")...)
+	packet.dataG = append(packet.dataG, bufg...)
+	packet.dataG = append(packet.dataG, []byte("\r")...)
 
-	return packet
+	packet.terminator = "end\r"
+
+	return &packet
 }
 
 func getUsbttyList() []string {
@@ -263,10 +272,10 @@ func printLCD(str lcdString, shift int) (*lcdMatrix, *lcdString) {
 				bit = bit & 0x0001
 				//赤があるとき
 				//buf[coordX] = uint8(bit)
-				if str.c[cn].color == 0xff0000 {
+				if str.c[cn].color&0xff0000 == 0xff0000 {
 					bufR = append(bufR, uint8(bit))
 				}
-				if str.c[cn].color == 0x00ff00 {
+				if str.c[cn].color&0x00ff00 == 0x00ff00 {
 					bufG = append(bufG, uint8(bit))
 				}
 			}
@@ -283,12 +292,12 @@ func printLCD(str lcdString, shift int) (*lcdMatrix, *lcdString) {
 				counter = 0
 			}
 			ret.dataR[i][y] = ret.dataR[i][y] << 1
+			ret.dataG[i][y] = ret.dataG[i][y] << 1
 			if str.coord+x < len(bufR) {
 				ret.dataR[i][y] |= uint32(bufR[str.coord+x])
 			} else {
 				ret.dataR[i][y] |= 0
 			}
-			ret.dataG[i][y] = ret.dataG[i][y] << 1
 			if str.coord+x < len(bufG) {
 				ret.dataG[i][y] |= uint32(bufG[str.coord+x])
 			} else {
@@ -298,15 +307,32 @@ func printLCD(str lcdString, shift int) (*lcdMatrix, *lcdString) {
 		}
 	}
 	str.coord += shift
-	fmt.Println(ret)
+
+	fmt.Println("r:")
+	for y := 0; y < 16; y++ {
+		for x := 0; x < 3; x++ {
+			fmt.Printf("%4d", ret.dataR[x][y])
+		}
+		fmt.Println()
+	}
+	fmt.Println()
+	fmt.Println("g:")
+	for y := 0; y < 16; y++ {
+		for x := 0; x < 3; x++ {
+			fmt.Printf("%4d", ret.dataG[x][y])
+		}
+		fmt.Println()
+	}
+	fmt.Println()
+
 	return &ret, &str
 
 }
 
 func main() {
 
-	//str := convertLCDString("a", 0x00ff00)
-	//packet := createPacket(*str)
+	str := convertLCDString("FA", 0xff0000)
+	packet := createPacket(*str)
 
 	ttyPort, err := viewTtySelecterUI()
 	if err != nil {
@@ -316,7 +342,30 @@ func main() {
 	serialConfigure := &goserial.Config{Name: ttyPort, Baud: 9600}
 	serialPort, _ := goserial.OpenPort(serialConfigure)
 
-	packet := createTestPacket()
+	//packet = createTestPacket()
+	c := 0
+	fmt.Println("r:")
+	for _, p := range packet.dataR {
+		fmt.Printf("%4d", p)
+		c++
+		if c == 16 {
+			c = 0
+			fmt.Println()
+		}
+	}
+	fmt.Println()
+	c = 0
+	fmt.Println("g:")
+	for _, p := range packet.dataG {
+		fmt.Printf("%4d", p)
+		c++
+		if c == 16 {
+			c = 0
+			fmt.Println()
+		}
+	}
+	fmt.Println()
+
 	for i := 0; i < 100; i++ {
 		writeLCDMatrix(packet, serialPort)
 	}

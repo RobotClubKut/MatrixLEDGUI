@@ -274,9 +274,13 @@ func printLCD(str lcdString, shift int) (*lcdMatrix, *lcdString) {
 				//buf[coordX] = uint8(bit)
 				if str.c[cn].color&0xff0000 == 0xff0000 {
 					bufR = append(bufR, uint8(bit))
+				} else {
+					bufR = append(bufR, uint8(0))
 				}
 				if str.c[cn].color&0x00ff00 == 0x00ff00 {
 					bufG = append(bufG, uint8(bit))
+				} else {
+					bufG = append(bufG, uint8(0))
 				}
 			}
 		}
@@ -331,7 +335,9 @@ func printLCD(str lcdString, shift int) (*lcdMatrix, *lcdString) {
 
 func main() {
 
-	str := convertLCDString("FA", 0xff0000)
+	str0 := convertLCDString("A", 0xff0000)
+	str1 := convertLCDString("F", 0x00ff00)
+	str := connectLCDStr(str0, str1)
 	packet := createPacket(*str)
 
 	ttyPort, err := viewTtySelecterUI()

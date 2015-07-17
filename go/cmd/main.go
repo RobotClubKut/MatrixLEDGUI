@@ -20,6 +20,21 @@ type packet struct {
 	terminator string
 }
 
+type lcdChar struct {
+	c      string
+	bitmap [16]uint16
+	color  int
+}
+
+type lcdString struct {
+	c         []lcdChar
+	drowCoord int
+}
+
+type lcdMatrix struct {
+	data [96][16]int
+}
+
 func createTestPacket() *packet {
 	var p packet
 	p.header = "pcmat\r"

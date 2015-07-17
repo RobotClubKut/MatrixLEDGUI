@@ -305,8 +305,8 @@ func printLCD(str lcdString, shift int) (*lcdMatrix, *lcdString) {
 
 func main() {
 
-	str := convertLCDString("a", 0x00ff00)
-	packet := createPacket(*str)
+	//str := convertLCDString("a", 0x00ff00)
+	//packet := createPacket(*str)
 
 	ttyPort, err := viewTtySelecterUI()
 	if err != nil {
@@ -316,7 +316,7 @@ func main() {
 	serialConfigure := &goserial.Config{Name: ttyPort, Baud: 9600}
 	serialPort, _ := goserial.OpenPort(serialConfigure)
 
-	packet = createTestPacket()
+	packet := createTestPacket()
 	for i := 0; i < 100; i++ {
 		writeLCDMatrix(packet, serialPort)
 	}

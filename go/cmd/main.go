@@ -370,7 +370,6 @@ func printLCD(str lcdString, shift int) *lcdMatrix {
 	}
 
 	return &ret
-
 }
 
 func selectFont() (string, error) {
@@ -405,9 +404,9 @@ func main() {
 	}
 	fontName = font
 
-	str0 := convertLCDString("にゃんぱす。", 0xff0000)
-	str1 := convertLCDString("ぴねたんなう。", 0x00ff00)
-	str2 := convertLCDString("文蔵いきたい。", 0xffff00)
+	str0 := convertLCDString("【速報】", 0xff0000)
+	str1 := convertLCDString("なのは完売", 0xffff00)
+	str2 := convertLCDString("", 0xffff00)
 	str := connectLCDStr(str0, str1)
 	str = connectLCDStr(str, str2)
 
@@ -419,20 +418,36 @@ func main() {
 	serialConfigure := &goserial.Config{Name: ttyPort, Baud: 9600}
 	serialPort, _ := goserial.OpenPort(serialConfigure)
 
+	shiftCoord := len(str.c) * 16
 	//packet = createTestPacket()
 
-	fmt.Println("len:", len(str.c))
-	shiftCoord := len(str.c) * 16
-	fmt.Println("shift coordnate: ", shiftCoord)
 	serialPort.Close()
 
-	for k := 0; k < 3; k++ {
-		for i := 0; i < shiftCoord+96+1; i++ {
-			serialPort, _ = goserial.OpenPort(serialConfigure)
-			packet := createPacket(*str, i-96)
-			writeLCDMatrix(packet, serialPort)
-			time.Sleep(10 * time.Millisecond)
-			serialPort.Close()
+	ch0 := make(chan bool)
+	ch1 := make(chan bool)
+
+	go func() {
+		for k := 0; k < 100000; k++ {
+			for i := 0; i < shiftCoord+96+1; i++ {
+				serialPort, _ = goserial.OpenPort(serialConfigure)
+				packet := createPacket(*str, i-96)
+				writeLCDMatrix(packet, serialPort)
+				time.Sleep(10 * time.Millisecond)
+				serialPort.Close()
+			}
 		}
-	}
+		ch0 <- true
+	}()
+	go func() {
+		for i := 0; i < 1000; i++ {
+			var s string
+			fmt.Println("input str")
+			fmt.Scan(&s)
+			str = convertLCDString(s, 0xff0000)
+			shiftCoord = len(str.c) * 16
+		}
+		ch1 <- true
+	}()
+	<-ch0
+	<-ch1
 }

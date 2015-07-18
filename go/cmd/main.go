@@ -11,6 +11,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/disintegration/imaging"
 	"github.com/huin/goserial"
@@ -19,6 +20,7 @@ import (
 )
 
 var fontName string
+var debug bool
 
 type packet struct {
 	header     string
@@ -45,6 +47,9 @@ type lcdMatrix struct {
 }
 
 func createTestPacket() *packet {
+	if debug {
+		fmt.Println("createTestPacket")
+	}
 	var p packet
 	p.header = "pcmat\r"
 	p.coord = "000\r5ff\r"
@@ -64,6 +69,10 @@ func createTestPacket() *packet {
 }
 
 func createPacket(str lcdString, shift int) *packet {
+	if debug {
+		fmt.Println("createPacket")
+	}
+
 	data := printLCD(str, shift)
 	//str.coord += shift
 
@@ -113,6 +122,9 @@ func createPacket(str lcdString, shift int) *packet {
 }
 
 func getUsbttyList() []string {
+	if debug {
+		fmt.Println("getUsbttyList")
+	}
 	contents, _ := ioutil.ReadDir("/dev")
 	var ret []string
 
@@ -129,6 +141,9 @@ func getUsbttyList() []string {
 }
 
 func writeLCDMatrix(p *packet, s io.ReadWriteCloser) {
+	if debug {
+		fmt.Println("writeLCDMatrix")
+	}
 	s.Write([]byte(p.header))
 	s.Write([]byte(p.coord))
 	s.Write([]byte(p.dataR))
@@ -137,6 +152,10 @@ func writeLCDMatrix(p *packet, s io.ReadWriteCloser) {
 }
 
 func ttySelecter(ttys []string) (string, error) {
+	if debug {
+		fmt.Println("ttySelecter")
+	}
+
 	for i, s := range ttys {
 		fmt.Println(strconv.Itoa(i) + ": " + s)
 	}
@@ -154,6 +173,9 @@ func ttySelecter(ttys []string) (string, error) {
 }
 
 func viewTtySelecterUI() (string, error) {
+	if debug {
+		fmt.Println("viewTtySelecterUI")
+	}
 	ttys := getUsbttyList()
 	tty, err := ttySelecter(ttys)
 
@@ -162,6 +184,9 @@ func viewTtySelecterUI() (string, error) {
 }
 
 func convertString2image(s string) (*image.RGBA, error) {
+	if debug {
+		fmt.Println("convertString2image")
+	}
 	dpi := float64(72.0)
 	//fontfile := "../font/MS Gothic.ttf"
 
@@ -215,6 +240,9 @@ func convertString2image(s string) (*image.RGBA, error) {
 }
 
 func cancellationAntiAliasing(img *image.RGBA) *image.NRGBA {
+	if debug {
+		fmt.Println("cancellationAntiAliasing")
+	}
 	gray := imaging.Grayscale(img)
 	//imaging.Save(gray, "./grayscaled.png")
 	w := gray.Rect.Max.X
@@ -236,6 +264,9 @@ func cancellationAntiAliasing(img *image.RGBA) *image.NRGBA {
 }
 
 func convertLCDChar(c string, color int) *lcdChar {
+	if debug {
+		fmt.Println("convertLCDChar")
+	}
 	image, _ := convertString2image(c)
 	img := cancellationAntiAliasing(image)
 
@@ -259,6 +290,9 @@ func convertLCDChar(c string, color int) *lcdChar {
 }
 
 func convertLCDString(str string, color int) *lcdString {
+	if debug {
+		fmt.Println("convertLCDString")
+	}
 	var ret lcdString
 
 	for _, c := range str {
@@ -269,6 +303,9 @@ func convertLCDString(str string, color int) *lcdString {
 }
 
 func connectLCDStr(str0 *lcdString, str1 *lcdString) *lcdString {
+	if debug {
+		fmt.Println("connectLCDStr")
+	}
 	var ret lcdString
 	ret.c = append(ret.c, str0.c...)
 	ret.c = append(ret.c, str1.c...)
@@ -277,6 +314,9 @@ func connectLCDStr(str0 *lcdString, str1 *lcdString) *lcdString {
 }
 
 func printLCD(str lcdString, shift int) *lcdMatrix {
+	if debug {
+		fmt.Println("printLCD")
+	}
 	var ret lcdMatrix
 
 	for y := 0; y < 16; y++ {
@@ -305,7 +345,7 @@ func printLCD(str lcdString, shift int) *lcdMatrix {
 		i := 0
 		counter := 0
 
-		for x := shift; x < 96; x++ {
+		for x := shift; x < 96+shift; x++ {
 			if counter == 32 {
 				i++
 				if i == 3 {
@@ -315,12 +355,12 @@ func printLCD(str lcdString, shift int) *lcdMatrix {
 			}
 			ret.dataR[i][y] = ret.dataR[i][y] << 1
 			ret.dataG[i][y] = ret.dataG[i][y] << 1
-			if str.coord+x < len(bufR) {
+			if str.coord+x < len(bufR) && x+str.coord >= 0 {
 				ret.dataR[i][y] |= uint32(bufR[x+str.coord])
 			} else {
 				ret.dataR[i][y] |= 0
 			}
-			if str.coord+x < len(bufG) {
+			if str.coord+x < len(bufG) && str.coord+x >= 0 {
 				ret.dataG[i][y] |= uint32(bufG[x+str.coord])
 			} else {
 				ret.dataG[i][y] |= 0
@@ -334,6 +374,9 @@ func printLCD(str lcdString, shift int) *lcdMatrix {
 }
 
 func selectFont() (string, error) {
+	if debug {
+		fmt.Println("selectFont")
+	}
 
 	fontDir := "../font/"
 	list, err := ioutil.ReadDir(fontDir)
@@ -347,6 +390,7 @@ func selectFont() (string, error) {
 	}
 
 	n := 0
+	fmt.Println()
 	fmt.Print("Select font file: ")
 	fmt.Scan(&n)
 	fmt.Println()
@@ -354,15 +398,16 @@ func selectFont() (string, error) {
 }
 
 func main() {
+	debug = false
 	font, err := selectFont()
 	if err != nil {
 		log.Fatalln(err)
 	}
 	fontName = font
 
-	str0 := convertLCDString("にゃん", 0xff0000)
-	str1 := convertLCDString("ぱす", 0x00ff00)
-	str2 := convertLCDString("ー", 0xffff00)
+	str0 := convertLCDString("にゃんぱす。", 0xff0000)
+	str1 := convertLCDString("ぴねたんなう。", 0x00ff00)
+	str2 := convertLCDString("文蔵いきたい。", 0xffff00)
 	str := connectLCDStr(str0, str1)
 	str = connectLCDStr(str, str2)
 
@@ -376,8 +421,18 @@ func main() {
 
 	//packet = createTestPacket()
 
-	for i := 0; i < 10; i++ {
-		packet := createPacket(*str, 0)
-		writeLCDMatrix(packet, serialPort)
+	fmt.Println("len:", len(str.c))
+	shiftCoord := len(str.c) * 16
+	fmt.Println("shift coordnate: ", shiftCoord)
+	serialPort.Close()
+
+	for k := 0; k < 3; k++ {
+		for i := 0; i < shiftCoord+96+1; i++ {
+			serialPort, _ = goserial.OpenPort(serialConfigure)
+			packet := createPacket(*str, i-96)
+			writeLCDMatrix(packet, serialPort)
+			time.Sleep(10 * time.Millisecond)
+			serialPort.Close()
+		}
 	}
 }

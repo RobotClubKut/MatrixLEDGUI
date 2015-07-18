@@ -11,13 +11,14 @@ import (
 	"log"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/disintegration/imaging"
 	"github.com/huin/goserial"
 
 	"code.google.com/p/freetype-go/freetype"
 )
+
+var fontName string
 
 type packet struct {
 	header     string
@@ -163,7 +164,9 @@ func viewTtySelecterUI() (string, error) {
 func convertString2image(s string) (*image.RGBA, error) {
 	dpi := float64(72.0)
 	//fontfile := "../font/MS Gothic.ttf"
-	fontfile := "../font/VL.ttf"
+
+	//fontfile := "../font/VL.ttf"
+	fontfile := fontName
 	hinting := "none"
 	size := float64(17)
 	spacing := float64(0)
@@ -330,11 +333,36 @@ func printLCD(str lcdString, shift int) *lcdMatrix {
 
 }
 
-func main() {
+func selectFont() (string, error) {
 
-	str0 := convertLCDString("ああああああああああああああああああああああああああああああああああああああ", 0xff0000)
-	str1 := convertLCDString("", 0x00ff00)
-	str2 := convertLCDString("", 0xffff00)
+	fontDir := "../font/"
+	list, err := ioutil.ReadDir(fontDir)
+	if err != nil {
+		log.Println(err)
+		return "", err
+	}
+	for i, f := range list {
+		fmt.Printf("%d: ", i)
+		fmt.Println(f.Name())
+	}
+
+	n := 0
+	fmt.Print("Select font file: ")
+	fmt.Scan(&n)
+	fmt.Println()
+	return "../font/" + list[n].Name(), nil
+}
+
+func main() {
+	font, err := selectFont()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	fontName = font
+
+	str0 := convertLCDString("にゃん", 0xff0000)
+	str1 := convertLCDString("ぱす", 0x00ff00)
+	str2 := convertLCDString("ー", 0xffff00)
 	str := connectLCDStr(str0, str1)
 	str = connectLCDStr(str, str2)
 
@@ -348,11 +376,8 @@ func main() {
 
 	//packet = createTestPacket()
 
-	for i := 0; i < 10000; i++ {
-		packet := createPacket(*str, i)
+	for i := 0; i < 10; i++ {
+		packet := createPacket(*str, 0)
 		writeLCDMatrix(packet, serialPort)
-		time.Sleep(10 * time.Millisecond)
 	}
-	//gray := imaging.Grayscale(convertString2image("A"))
-	//imaging.Save(gray, "./grayscaled.png")
 }

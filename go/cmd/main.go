@@ -3,12 +3,14 @@ package main
 import (
 	"errors"
 	"fmt"
+	"html"
 	"image"
 	"image/color"
 	"image/draw"
 	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -21,6 +23,8 @@ import (
 
 var fontName string
 var debug bool
+var viewStr string
+var viewColor int
 
 type packet struct {
 	header     string
@@ -396,7 +400,32 @@ func selectFont() (string, error) {
 	return "../font/" + list[n].Name(), nil
 }
 
+func home(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hello, World")
+}
+
+func update(w http.ResponseWriter, r *http.Request) {
+	str := r.FormValue("str")
+	col := r.FormValue("col")
+	viewStr = str
+	if col == "red" {
+		viewColor = 0xff0000
+	} else if col == "green" {
+		viewColor = 0x00ff00
+	} else if col == "orange" {
+		viewColor = 0xffff00
+	} else {
+		viewColor = 0xffff00
+	}
+
+	fmt.Fprintf(w, "<html><body>Input String: %s, %s</body></html>",
+		html.EscapeString(str), html.EscapeString(col))
+}
+
 func main() {
+
+	viewColor = 0xffff00
+	viewStr = "高知工科大学ロボット倶楽部"
 	debug = false
 	font, err := selectFont()
 	if err != nil {
@@ -404,8 +433,8 @@ func main() {
 	}
 	fontName = font
 
-	str0 := convertLCDString("【速報】", 0xff0000)
-	str1 := convertLCDString("なのは完売", 0xffff00)
+	str0 := convertLCDString("高知工科大学　", 0xff0000)
+	str1 := convertLCDString("ロボット倶楽部", 0xffff00)
 	str2 := convertLCDString("", 0xffff00)
 	str := connectLCDStr(str0, str1)
 	str = connectLCDStr(str, str2)
@@ -414,12 +443,10 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-
 	serialConfigure := &goserial.Config{Name: ttyPort, Baud: 9600}
 	serialPort, _ := goserial.OpenPort(serialConfigure)
 
 	shiftCoord := len(str.c) * 16
-	//packet = createTestPacket()
 
 	serialPort.Close()
 
@@ -429,23 +456,33 @@ func main() {
 	go func() {
 		for k := 0; k < 100000; k++ {
 			for i := 0; i < shiftCoord+96+1; i++ {
+				str = convertLCDString(viewStr, viewColor)
 				serialPort, _ = goserial.OpenPort(serialConfigure)
 				packet := createPacket(*str, i-96)
 				writeLCDMatrix(packet, serialPort)
 				time.Sleep(10 * time.Millisecond)
 				serialPort.Close()
+				fmt.Println("str: ", viewStr, "Color: ", viewColor)
 			}
 		}
 		ch0 <- true
 	}()
 	go func() {
-		for i := 0; i < 1000; i++ {
-			var s string
-			fmt.Println("input str")
-			fmt.Scan(&s)
-			str = convertLCDString(s, 0xff0000)
-			shiftCoord = len(str.c) * 16
-		}
+		/*
+			http.HandleFunc("/", handler) // ハンドラを登録してウェブページを表示させる
+			http.ListenAndServe(":8080", nil)
+			for i := 0; i < 1000; i++ {
+				var s string
+				fmt.Println("input str")
+				fmt.Scan(&s)
+				str = convertLCDString(s, 0xff0000)
+				shiftCoord = len(str.c) * 16
+			}
+		*/
+		http.HandleFunc("/", home)
+		http.HandleFunc("/update", update)
+		http.ListenAndServe(":8080", nil)
+
 		ch1 <- true
 	}()
 	<-ch0

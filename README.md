@@ -1,10 +1,11 @@
 # MatrixLEDGUI #################################
 ![RoboLive](https://github.com/RobotClubKut/MatrixLEDGUI/blob/master/img/robolive.png?raw=true)
+##概要
+* Dot Matrixを表示させるためのプロジェクト
+* Dot Matrixの詳細は[MatrixLED](https://github.com/RobotClubKut/MatrixLED)を参照すること
 
-Dot Matrixを表示させるためのプロジェクト
---------------
 ##Java版の使用方法
-MatrixLEDのためのGUI
+* MatrixLEDのためのGUI
 
 ###コマンド一覧
 |Command|                  |

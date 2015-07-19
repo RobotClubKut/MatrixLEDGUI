@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"compress/zlib"
 	"errors"
 	"fmt"
 	"html"
@@ -13,7 +15,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/disintegration/imaging"
 	"github.com/huin/goserial"
@@ -35,7 +36,7 @@ type packet struct {
 
 type lcdChar struct {
 	c      string
-	bitmap [16]uint16
+	bitmap [16]uint32
 	color  int
 }
 
@@ -114,10 +115,19 @@ func createPacket(str lcdString, shift int) *packet {
 	}
 	//packet.dataR = []byte(string(bufr) + "\r")
 	//packet.dataG = []byte(string(bufg) + "\r")
-	packet.dataR = append(packet.dataR, bufr...)
-	packet.dataR = append(packet.dataR, []byte("\r")...)
-	packet.dataG = append(packet.dataG, bufg...)
-	packet.dataG = append(packet.dataG, []byte("\r")...)
+	fin := make(chan bool)
+	go func() {
+		packet.dataR = append(packet.dataR, bufr...)
+		packet.dataR = append(packet.dataR, []byte("\r")...)
+		fin <- true
+	}()
+	go func() {
+		packet.dataG = append(packet.dataG, bufg...)
+		packet.dataG = append(packet.dataG, []byte("\r")...)
+		fin <- true
+	}()
+	<-fin
+	<-fin
 
 	packet.terminator = "end\r"
 
@@ -411,7 +421,7 @@ func sendLCDStr(serialConfigure *goserial.Config, str *lcdString, fin chan bool)
 			serialPort, _ := goserial.OpenPort(serialConfigure)
 			packet := createPacket(*str, i-96)
 			writeLCDMatrix(packet, serialPort)
-			time.Sleep(10 * time.Millisecond)
+			//time.Sleep(1 * time.Millisecond)
 			serialPort.Close()
 		}
 	}
@@ -459,6 +469,35 @@ func webServer(fin chan bool) {
 	http.ListenAndServe(":8080", nil)
 
 	fin <- true
+}
+
+func compressString(srcBytes []byte) []byte {
+	var srcBuffer bytes.Buffer
+
+	zlibWriter := zlib.NewWriter(&srcBuffer)
+
+	zlibWriter.Write(srcBytes)
+	zlibWriter.Close()
+
+	return srcBuffer.Bytes()
+}
+
+func uncompressString(srcBytes []byte) []byte {
+	var srcBuffer bytes.Buffer
+	var distBuf bytes.Buffer
+	srcBuffer.Write(srcBytes)
+
+	zlibReader, err := zlib.NewReader(&srcBuffer)
+
+	if err != nil {
+		fmt.Println("Can't reading data")
+	}
+
+	io.Copy(&distBuf, zlibReader)
+
+	zlibReader.Close()
+
+	return distBuf.Bytes()
 }
 
 func main() {

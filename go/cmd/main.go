@@ -23,8 +23,7 @@ import (
 
 var fontName string
 var debug bool
-var viewStr string
-var viewColor int
+var lcdStringBuffer *lcdString
 
 type packet struct {
 	header     string
@@ -404,28 +403,66 @@ func home(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello, World")
 }
 
-func update(w http.ResponseWriter, r *http.Request) {
+func sendLCDStr(serialConfigure *goserial.Config, str *lcdString, fin chan bool) {
+	for {
+		str = lcdStringBuffer
+		shiftCoord := len(str.c) * 16
+		for i := 0; i < shiftCoord+96+1; i++ {
+			serialPort, _ := goserial.OpenPort(serialConfigure)
+			packet := createPacket(*str, i-96)
+			writeLCDMatrix(packet, serialPort)
+			time.Sleep(10 * time.Millisecond)
+			serialPort.Close()
+		}
+	}
+	fin <- true
+}
+
+func top(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hello, World")
+}
+
+func update(w http.ResponseWriter, r *http.Request) (string, string) {
+
 	str := r.FormValue("str")
 	col := r.FormValue("col")
-	viewStr = str
-	if col == "red" {
-		viewColor = 0xff0000
-	} else if col == "green" {
-		viewColor = 0x00ff00
-	} else if col == "orange" {
-		viewColor = 0xffff00
-	} else {
-		viewColor = 0xffff00
-	}
 
 	fmt.Fprintf(w, "<html><body>Input String: %s, %s</body></html>",
 		html.EscapeString(str), html.EscapeString(col))
+	return str, col
+}
+
+func webServer(fin chan bool) {
+	http.HandleFunc("/", top)
+	http.HandleFunc("/update", func(w http.ResponseWriter, r *http.Request) {
+		ch := make(chan bool)
+		go func() {
+			str, col := update(w, r)
+			if str != "" {
+				c := 0
+				if col == "red" {
+					c = 0xff0000
+				} else if col == "green" {
+					c = 0x00ff00
+				} else if col == "orange" {
+					c = 0xffff00
+				} else {
+					c = 0xffff00
+				}
+				lcdStringBuffer = convertLCDString(str, c)
+			}
+			ch <- true
+
+		}()
+		<-ch
+	})
+	http.ListenAndServe(":8080", nil)
+
+	fin <- true
 }
 
 func main() {
 
-	viewColor = 0xffff00
-	viewStr = "高知工科大学ロボット倶楽部"
 	debug = false
 	font, err := selectFont()
 	if err != nil {
@@ -436,55 +473,22 @@ func main() {
 	str0 := convertLCDString("高知工科大学　", 0xff0000)
 	str1 := convertLCDString("ロボット倶楽部", 0xffff00)
 	str2 := convertLCDString("", 0xffff00)
-	str := connectLCDStr(str0, str1)
-	str = connectLCDStr(str, str2)
+	lcdStringBuffer = connectLCDStr(str0, str1)
+	lcdStringBuffer = connectLCDStr(lcdStringBuffer, str2)
 
 	ttyPort, err := viewTtySelecterUI()
 	if err != nil {
 		log.Fatalln(err)
 	}
 	serialConfigure := &goserial.Config{Name: ttyPort, Baud: 9600}
-	serialPort, _ := goserial.OpenPort(serialConfigure)
+	//ここまでfontとserialportの設定
 
-	shiftCoord := len(str.c) * 16
+	serialFin := make(chan bool)
+	serverFin := make(chan bool)
 
-	serialPort.Close()
+	go sendLCDStr(serialConfigure, lcdStringBuffer, serialFin)
+	go webServer(serverFin)
+	<-serialFin
+	<-serverFin
 
-	ch0 := make(chan bool)
-	ch1 := make(chan bool)
-
-	go func() {
-		for k := 0; k < 100000; k++ {
-			for i := 0; i < shiftCoord+96+1; i++ {
-				str = convertLCDString(viewStr, viewColor)
-				serialPort, _ = goserial.OpenPort(serialConfigure)
-				packet := createPacket(*str, i-96)
-				writeLCDMatrix(packet, serialPort)
-				time.Sleep(10 * time.Millisecond)
-				serialPort.Close()
-				fmt.Println("str: ", viewStr, "Color: ", viewColor)
-			}
-		}
-		ch0 <- true
-	}()
-	go func() {
-		/*
-			http.HandleFunc("/", handler) // ハンドラを登録してウェブページを表示させる
-			http.ListenAndServe(":8080", nil)
-			for i := 0; i < 1000; i++ {
-				var s string
-				fmt.Println("input str")
-				fmt.Scan(&s)
-				str = convertLCDString(s, 0xff0000)
-				shiftCoord = len(str.c) * 16
-			}
-		*/
-		http.HandleFunc("/", home)
-		http.HandleFunc("/update", update)
-		http.ListenAndServe(":8080", nil)
-
-		ch1 <- true
-	}()
-	<-ch0
-	<-ch1
 }

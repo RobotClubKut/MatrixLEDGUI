@@ -78,9 +78,10 @@ func compressMatrixChar(c string, font string, color uint32) *MatrixCharData {
 		b = (bitmap & 0x000000ff) >> 0
 		buf = append(buf, byte(b))
 		//圧縮して押し込む
-		ch := make(chan []byte)
-		go compressChar("clz4", buf, ch)
-		ret.Bitmap[y] = <-ch
+		//ch := make(chan []byte)
+		//go compressChar("none", buf, ch)
+		//ret.Bitmap[y] = <-ch
+		ret.Bitmap[y] = buf
 	}
 	return &ret
 }
@@ -89,7 +90,8 @@ func ReadMatrixChar(cm MatrixCharData) *MatrixChar {
 	var ret MatrixChar
 	ret.Color = cm.Color
 	for y := 0; y < 16; y++ {
-		buf := uncompressChar("clz4", cm.Bitmap[y])
+		//buf := uncompressChar("none", cm.Bitmap[y])
+		buf := cm.Bitmap[y]
 		ret.Bitmap[y] = 0
 		fin := make(chan bool)
 		go func() {
@@ -134,6 +136,8 @@ func compressChar(mode string, srcBytes []byte, ch chan []byte) {
 			log.Fatalln("empty")
 		}
 		ch <- out
+	} else {
+		ch <- srcBytes
 	}
 }
 func uncompressChar(mode string, srcBytes []byte) []byte {
@@ -155,28 +159,7 @@ func uncompressChar(mode string, srcBytes []byte) []byte {
 			log.Fatalln(err)
 		}
 		return dec
+	} else {
+		return srcBytes
 	}
-	return nil
 }
-
-/*
-func compressChar(srcBytes []byte, ch chan []byte) {
-	out := []byte{}
-	err := clz4.Compress(srcBytes, &out)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	if len(out) == 0 {
-		log.Fatalln("empty")
-	}
-	ch <- out
-}
-func uncompressChar(srcBytes []byte) []byte {
-	dec := make([]byte, len(srcBytes))
-	err := clz4.Uncompress(srcBytes, &dec)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	return dec
-}
-*/

@@ -19,7 +19,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	str := matrix.NewMatrixString("にゃんぱす", 0xffff00, font)
+	str := matrix.NewMatrixString("にゃんぱすといろはす似てね？", 0xffff00, font)
 	ttyPort, err := career.ViewTtySelecterUI()
 	if err != nil {
 		log.Fatalln(err)

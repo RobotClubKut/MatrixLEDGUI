@@ -3,9 +3,14 @@ package career
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"strconv"
 	"strings"
+
+	"github.com/RobotClubKut/MatrixLEDGUI/go/matrix"
+	"github.com/RobotClubKut/MatrixLEDGUI/go/packet"
+	"github.com/huin/goserial"
 )
 
 func getUsbttyList() []string {
@@ -48,4 +53,26 @@ func ViewTtySelecterUI() (string, error) {
 
 	fmt.Println(tty)
 	return tty, err
+}
+
+func writeLCDMatrix(p *packet.Packet, s io.ReadWriteCloser) {
+	s.Write([]byte(p.Header))
+	s.Write([]byte(p.Coord))
+	s.Write([]byte(p.DataR))
+	s.Write([]byte(p.DataG))
+	s.Write([]byte(p.Terminator))
+}
+
+func SendMatrixString(serialConfigure *goserial.Config, str *matrix.MatrixString, fin chan bool) {
+	for {
+		shiftCoord := len(str.Char) * 16
+		for i := 0; i < shiftCoord+96+1; i++ {
+			serialPort, _ := goserial.OpenPort(serialConfigure)
+			packet := packet.CreatePacket(*str, i-96)
+			writeLCDMatrix(packet, serialPort)
+			//time.Sleep(1 * time.Millisecond)
+			serialPort.Close()
+		}
+	}
+	fin <- true
 }

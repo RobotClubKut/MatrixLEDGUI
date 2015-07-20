@@ -34,7 +34,7 @@ func createTestPacket() *Packet {
 	return &p
 }
 
-func printLCD(str matrix.MatrixString, shift int) *LcdMatrix {
+func printMatrix(str matrix.MatrixString, shift int) *LcdMatrix {
 	var ret LcdMatrix
 
 	for y := 0; y < 16; y++ {

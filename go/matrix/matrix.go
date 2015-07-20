@@ -25,6 +25,24 @@ type MatrixString struct {
 	Coord uint32
 }
 
+func NewMatrixString(str string, color uint32, font string) *MatrixString {
+	var ret MatrixString
+
+	for _, char := range str {
+		//圧縮した文字を格納する
+		ret.Char = append(ret.Char, *compressMatrixChar(string(char), font, color))
+	}
+	return &ret
+}
+
+func ConnectMatrixString(s0 *MatrixString, s1 *MatrixString) *MatrixString {
+	var ret MatrixString
+
+	ret.Char = append(s0.Char, s1.Char...)
+	ret.Coord = 0
+	return &ret
+}
+
 func compressMatrixChar(c string, font string, color uint32) *MatrixCharData {
 	image, err := strimage.ConvertString2image(c, font)
 	if err != nil {
@@ -64,7 +82,7 @@ func compressMatrixChar(c string, font string, color uint32) *MatrixCharData {
 	return &ret
 }
 
-func readMatrixChar(cm MatrixCharData) *MatrixChar {
+func ReadMatrixChar(cm MatrixCharData) *MatrixChar {
 	var ret MatrixChar
 	ret.Color = cm.Color
 	for y := 0; y < 16; y++ {

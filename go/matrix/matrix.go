@@ -79,7 +79,7 @@ func compressMatrixChar(c string, font string, color uint32) *MatrixCharData {
 		buf = append(buf, byte(b))
 		//圧縮して押し込む
 		ch := make(chan []byte)
-		go compressChar("none", buf, ch)
+		go compressChar("clz4", buf, ch)
 		ret.Bitmap[y] = <-ch
 		//ret.Bitmap[y] = buf
 	}
@@ -90,7 +90,7 @@ func ReadMatrixChar(cm MatrixCharData) *MatrixChar {
 	var ret MatrixChar
 	ret.Color = cm.Color
 	for y := 0; y < 16; y++ {
-		buf := uncompressChar("none", cm.Bitmap[y])
+		buf := uncompressChar("clz4", cm.Bitmap[y])
 		//buf := cm.Bitmap[y]
 		ret.Bitmap[y] = 0
 		fin := make(chan bool)

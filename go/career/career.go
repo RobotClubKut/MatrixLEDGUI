@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/RobotClubKut/MatrixLEDGUI/go/matrix"
-	"github.com/RobotClubKut/MatrixLEDGUI/go/packet"
+	"github.com/RobotClubKut/MatrixLEDTOOLS/go/matrix"
+	"github.com/RobotClubKut/MatrixLEDTOOLS/go/packet"
 	"github.com/huin/goserial"
 )
 

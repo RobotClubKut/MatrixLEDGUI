@@ -1,6 +1,6 @@
 package packet
 
-import "github.com/RobotClubKut/MatrixLEDGUI/go/matrix"
+import "github.com/RobotClubKut/MatrixLEDTOOLS/go/matrix"
 
 type LcdMatrix struct {
 	DataR [3][16]uint32

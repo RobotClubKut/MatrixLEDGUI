@@ -7,7 +7,7 @@ import (
 	"io"
 	"log"
 
-	"github.com/RobotClubKut/MatrixLEDGUI/go/strimage"
+	"github.com/RobotClubKut/MatrixLEDTOOLS/go/strimage"
 	"github.com/pwaller/go-clz4"
 )
 

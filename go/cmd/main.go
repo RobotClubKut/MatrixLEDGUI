@@ -3,15 +3,15 @@ package main
 import (
 	"log"
 
-	"github.com/RobotClubKut/MatrixLEDGUI/go/career"
-	"github.com/RobotClubKut/MatrixLEDGUI/go/font"
-	"github.com/RobotClubKut/MatrixLEDGUI/go/matrix"
+	"github.com/RobotClubKut/MatrixLEDTOOLS/go/career"
+	"github.com/RobotClubKut/MatrixLEDTOOLS/go/font"
+	"github.com/RobotClubKut/MatrixLEDTOOLS/go/matrix"
 	"github.com/huin/goserial"
 )
 
-//"github.com/RobotClubKut/MatrixLEDGUI/go/ledMatrix/"
+//"github.com/RobotClubKut/MatrixLEDTOOLS/go/ledMatrix/"
 
-//import "github.com/RobotClubKut/MatrixLEDGUI/go/crs"
+//import "github.com/RobotClubKut/MatrixLEDTOOLS/go/crs"
 
 func main() {
 	font, err := font.SelectFont()

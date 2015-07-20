@@ -7,7 +7,7 @@ import (
 )
 
 func SelectFont() (string, error) {
-	fontDir := "../font/"
+	fontDir := "../fonts/"
 	list, err := ioutil.ReadDir(fontDir)
 	if err != nil {
 		log.Println(err)

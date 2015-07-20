@@ -15,7 +15,7 @@ type Packet struct {
 	Terminator string
 }
 
-func createTestPacket() *Packet {
+func CreateTestPacket() *Packet {
 	var p Packet
 	p.Header = "pcmat\r"
 	p.Coord = "000\r5ff\r"
@@ -89,4 +89,62 @@ func printMatrix(str matrix.MatrixString, shift int) *LcdMatrix {
 	}
 
 	return &ret
+}
+
+func CreatePacket(str matrix.MatrixString, shift int) *Packet {
+	data := printMatrix(str, shift)
+	//str.coord += shift
+
+	var packet Packet
+	packet.Header = "pcmat\r"
+	packet.Coord = "000\r5ff\r"
+
+	var bufr []byte
+	var bufg []byte
+	for y := 0; y < 16; y++ {
+
+		for x := 0; x < 3; x++ {
+			r := data.DataR[x][y]
+			rbyte := (r & 0xff000000) >> 24
+			bufr = append(bufr, byte(rbyte))
+			rbyte = (r & 0x00ff0000) >> 16
+			bufr = append(bufr, byte(rbyte))
+			rbyte = (r & 0x0000ff00) >> 8
+			bufr = append(bufr, byte(rbyte))
+			rbyte = (r & 0x000000ff) >> 0
+			bufr = append(bufr, byte(rbyte))
+
+			g := data.DataG[x][y]
+			//bing := make([]byte, 4)
+			//binary.LittleEndian.PutUint32(bing, g)
+			gbyte := (g & 0xff000000) >> 24
+			bufg = append(bufg, byte(gbyte))
+			gbyte = (g & 0x00ff0000) >> 16
+			bufg = append(bufg, byte(gbyte))
+			gbyte = (g & 0x0000ff00) >> 8
+			bufg = append(bufg, byte(gbyte))
+			gbyte = (g & 0x000000ff) >> 0
+			bufg = append(bufg, byte(gbyte))
+		}
+
+	}
+	//packet.dataR = []byte(string(bufr) + "\r")
+	//packet.dataG = []byte(string(bufg) + "\r")
+	fin := make(chan bool)
+	go func() {
+		packet.DataR = append(packet.DataR, bufr...)
+		packet.DataR = append(packet.DataR, []byte("\r")...)
+		fin <- true
+	}()
+	go func() {
+		packet.DataG = append(packet.DataG, bufg...)
+		packet.DataG = append(packet.DataG, []byte("\r")...)
+		fin <- true
+	}()
+	<-fin
+	<-fin
+
+	packet.Terminator = "end\r"
+
+	return &packet
 }

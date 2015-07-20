@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/RobotClubKut/MatrixLEDGUI/go/strimage"
+	"github.com/pwaller/go-clz4"
 )
 
 type MatrixCharData struct {
@@ -77,7 +78,9 @@ func compressMatrixChar(c string, font string, color uint32) *MatrixCharData {
 		b = (bitmap & 0x000000ff) >> 0
 		buf = append(buf, byte(b))
 		//圧縮して押し込む
-		ret.Bitmap[y] = compressChar(buf)
+		ch := make(chan []byte)
+		go compressChar("clz4", buf, ch)
+		ret.Bitmap[y] = <-ch
 	}
 	return &ret
 }
@@ -86,42 +89,94 @@ func ReadMatrixChar(cm MatrixCharData) *MatrixChar {
 	var ret MatrixChar
 	ret.Color = cm.Color
 	for y := 0; y < 16; y++ {
-		buf := uncompressChar(cm.Bitmap[y])
+		buf := uncompressChar("clz4", cm.Bitmap[y])
 		ret.Bitmap[y] = 0
-
-		ret.Bitmap[y] |= ((uint32(buf[0]) << 24) & 0xff000000)
-		ret.Bitmap[y] |= ((uint32(buf[1]) << 16) & 0x00ff0000)
-		ret.Bitmap[y] |= ((uint32(buf[2]) << 8) & 0x0000ff00)
-		ret.Bitmap[y] |= ((uint32(buf[3]) << 0) & 0x000000ff)
+		fin := make(chan bool)
+		go func() {
+			ret.Bitmap[y] |= ((uint32(buf[0]) << 24) & 0xff000000)
+			fin <- true
+		}()
+		go func() {
+			ret.Bitmap[y] |= ((uint32(buf[1]) << 16) & 0x00ff0000)
+			fin <- true
+		}()
+		go func() {
+			ret.Bitmap[y] |= ((uint32(buf[2]) << 8) & 0x0000ff00)
+			fin <- true
+		}()
+		go func() {
+			ret.Bitmap[y] |= ((uint32(buf[3]) << 0) & 0x000000ff)
+			fin <- true
+		}()
+		<-fin
+		<-fin
+		<-fin
+		<-fin
 	}
 	return &ret
 }
 
-func compressChar(srcBytes []byte) []byte {
-	var srcBuffer bytes.Buffer
-
-	zlibWriter := zlib.NewWriter(&srcBuffer)
-
-	zlibWriter.Write(srcBytes)
-	zlibWriter.Close()
-
-	return srcBuffer.Bytes()
-}
-
-func uncompressChar(srcBytes []byte) []byte {
-	var srcBuffer bytes.Buffer
-	var distBuf bytes.Buffer
-	srcBuffer.Write(srcBytes)
-
-	zlibReader, err := zlib.NewReader(&srcBuffer)
-
-	if err != nil {
-		fmt.Println("Can't reading data")
+func compressChar(mode string, srcBytes []byte, ch chan []byte) {
+	if mode == "zlib" {
+		var srcBuffer bytes.Buffer
+		zlibWriter := zlib.NewWriter(&srcBuffer)
+		zlibWriter.Write(srcBytes)
+		zlibWriter.Close()
+		ch <- srcBuffer.Bytes()
+		//return srcBuffer.Bytes()
+	} else if mode == "clz4" {
+		out := []byte{}
+		err := clz4.Compress(srcBytes, &out)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		if len(out) == 0 {
+			log.Fatalln("empty")
+		}
+		ch <- out
 	}
-
-	io.Copy(&distBuf, zlibReader)
-
-	zlibReader.Close()
-
-	return distBuf.Bytes()
 }
+func uncompressChar(mode string, srcBytes []byte) []byte {
+	if mode == "zlib" {
+		var srcBuffer bytes.Buffer
+		var distBuf bytes.Buffer
+		srcBuffer.Write(srcBytes)
+		zlibReader, err := zlib.NewReader(&srcBuffer)
+		if err != nil {
+			fmt.Println("Can't reading data")
+		}
+		io.Copy(&distBuf, zlibReader)
+		zlibReader.Close()
+		return distBuf.Bytes()
+	} else if mode == "clz4" {
+		dec := make([]byte, len(srcBytes))
+		err := clz4.Uncompress(srcBytes, &dec)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		return dec
+	}
+	return nil
+}
+
+/*
+func compressChar(srcBytes []byte, ch chan []byte) {
+	out := []byte{}
+	err := clz4.Compress(srcBytes, &out)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	if len(out) == 0 {
+		log.Fatalln("empty")
+	}
+	ch <- out
+}
+func uncompressChar(srcBytes []byte) []byte {
+	dec := make([]byte, len(srcBytes))
+	err := clz4.Uncompress(srcBytes, &dec)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return dec
+}
+*/

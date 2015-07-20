@@ -23,5 +23,5 @@ func SelectFont() (string, error) {
 	fmt.Print("Select font file: ")
 	fmt.Scan(&n)
 	fmt.Println()
-	return "../font/" + list[n].Name(), nil
+	return "../fonts/" + list[n].Name(), nil
 }

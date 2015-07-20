@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/RobotClubKut/MatrixLEDGUI/go/career"
@@ -27,7 +26,7 @@ func main() {
 	}
 
 	serialConfigure := &goserial.Config{Name: ttyPort, Baud: 9600}
-	fmt.Println(serialConfigure)
+	//fmt.Println(serialConfigure)
 
 	serialFin := make(chan bool)
 	go career.SendMatrixString(serialConfigure, str, serialFin)

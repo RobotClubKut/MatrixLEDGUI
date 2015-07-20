@@ -70,7 +70,6 @@ func SendMatrixString(serialConfigure *goserial.Config, str *matrix.MatrixString
 			serialPort, _ := goserial.OpenPort(serialConfigure)
 			packet := packet.CreatePacket(*str, i-96)
 			writeLCDMatrix(packet, serialPort)
-			//time.Sleep(1 * time.Millisecond)
 			serialPort.Close()
 		}
 	}

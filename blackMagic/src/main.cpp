@@ -3,6 +3,5 @@
 using namespace std;
 
 int main(){
-    cout << "golangは重かった" << endl;
-    cout << "メモリ管理がしたいのぉ" << endl;
+    cout << "I thought what I'd do was, I'd pretend I was one of those deaf-mutes." << endl;
 }

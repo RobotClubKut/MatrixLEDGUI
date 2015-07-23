@@ -55,6 +55,7 @@ func createTestPacket() *packet {
 		fmt.Println("createTestPacket")
 	}
 	var p packet
+	//p := packet{header: "pcmat\r", dataG: make([]byte, 0, 16*96/8), dataR: make([]byte, 0, 16*96/8), coord: "000\r5ff\r"}
 	p.header = "pcmat\r"
 	p.coord = "000\r5ff\r"
 	s1 := ""
@@ -80,9 +81,10 @@ func createPacket(str lcdString, shift int) *packet {
 	data := printLCD(str, shift)
 	//str.coord += shift
 
-	var packet packet
-	packet.header = "pcmat\r"
-	packet.coord = "000\r5ff\r"
+	//var packet packet
+	packet := packet{header: "pcmat\r", dataG: make([]byte, 0, 192), dataR: make([]byte, 0, 192), coord: "000\r5ff\r"}
+	//packet.header = "pcmat\r"
+	//packet.coord = "000\r5ff\r"
 
 	var bufr []byte
 	var bufg []byte
@@ -201,10 +203,10 @@ func convertString2image(s string) (*image.RGBA, error) {
 		fmt.Println("convertString2image")
 	}
 	dpi := float64(72.0)
-	//fontfile := "../font/MS Gothic.ttf"
+	fontfile := "../font/MS Gothic.ttf"
 
 	//fontfile := "../font/VL.ttf"
-	fontfile := fontName
+	//fontfile := fontName
 	hinting := "none"
 	size := float64(17)
 	spacing := float64(0)
@@ -306,12 +308,14 @@ func convertLCDString(str string, color int) *lcdString {
 	if debug {
 		fmt.Println("convertLCDString")
 	}
-	var ret lcdString
+	//var ret lcdString
+	//ret.c = make([]lcdChar, len(str))
+	ret := lcdString{c: make([]lcdChar, len(str)), coord: 0}
 
 	for _, c := range str {
 		ret.c = append(ret.c, *convertLCDChar(string(c), color))
 	}
-	ret.coord = 0
+	//ret.coord = 0
 	return &ret
 }
 
@@ -503,10 +507,13 @@ func uncompressString(srcBytes []byte) []byte {
 func main() {
 
 	debug = false
-	font, err := selectFont()
-	if err != nil {
-		log.Fatalln(err)
-	}
+	/*
+		font, err := selectFont()
+		if err != nil {
+			log.Fatalln(err)
+		}
+	*/
+	font := "../font/VL.ttf"
 	fontName = font
 
 	str0 := convertLCDString("高知工科大学　", 0xff0000)
